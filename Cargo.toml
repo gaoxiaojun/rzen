@@ -1,0 +1,8 @@
+[package]
+authors = ["gaoxiaojun"]
+edition = "2018"
+name = "rzen"
+version = "0.1.0"
+
+[dependencies]
+ringbuffer = {version = "0.5.0", default-features = false}
