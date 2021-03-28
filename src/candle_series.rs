@@ -88,8 +88,10 @@ impl<'a> CandleQueue<'a> {
         (self.handler)(f)
     }
 
-    fn process_contain_relationship(&mut self, bar: &Bar) {
-        // 队列中有两个及以上的经过包含处理的K线,处理与当前bar的包含关系
+    // 处理与当前bar的包含关系
+    fn process_contain_relationship(&mut self, bar: &Bar) -> bool {
+        // 队列中有至少两个经过包含处理的Candle
+        debug_assert!(self.window.len() >= 2);
         let direction = {
             let k1 = self.window.get(-2).unwrap();
             let k2 = self.window.get(-1).unwrap();
@@ -114,7 +116,7 @@ impl<'a> CandleQueue<'a> {
                     // 下包含，取低低
                     if high_eq_low && bar.low == k2.candle.low {
                         // 一字板特例，不处理，直接忽略当前的bar
-                        return;
+                        return true;
                     }
 
                     k2.candle.high = f64::min(bar.high, k2.candle.high);
@@ -129,7 +131,7 @@ impl<'a> CandleQueue<'a> {
                     // 上包含，取高高
                     if high_eq_low && bar.high == k2.candle.high {
                         // 一字板特例，不处理，直接忽略当前的bar
-                        return;
+                        return true;
                     }
 
                     k2.candle.high = f64::max(bar.high, k2.candle.high);
@@ -141,6 +143,9 @@ impl<'a> CandleQueue<'a> {
                     }
                 }
             }
+            true
+        } else {
+            false
         }
     }
 
@@ -177,68 +182,19 @@ impl<'a> CandleQueue<'a> {
                 self.add_bar(bar);
             }
 
+            2 => {
+                let processd = self.process_contain_relationship(bar);
+                if !processd {
+                    self.add_bar(bar);
+                }
+            }
             _ => {
-                // 队列中有两个及以上的经过包含处理的K线,处理与当前bar的包含关系
-                let direction = {
-                    let k1 = self.window.get(-2).unwrap();
-                    let k2 = self.window.get(-1).unwrap();
-                    if k1.candle.high > k2.candle.high {
-                        Direction::Down
-                    } else {
-                        Direction::Up
+                let processd = self.process_contain_relationship(bar);
+                if !processd {
+                    match self.check_fractal() {
+                        Some(f) => self.on_new_fractal(f),
+                        _ => {}
                     }
-                };
-
-                let k2 = self.window.get_mut(-1).unwrap();
-
-                // 检测k2,bar的是否有包含关系
-                if (k2.candle.high >= bar.high && k2.candle.low <= bar.low)
-                    || (k2.candle.high <= bar.high && k2.candle.low >= bar.low)
-                {
-                    // 特殊的一字板与前一根K高低点相同情况的处理
-                    let high_eq_low = bar.high == bar.low; // 一字板
-
-                    match direction {
-                        Direction::Down => {
-                            // 下包含，取低低
-                            if high_eq_low && bar.low == k2.candle.low {
-                                // 一字板特例，不处理，直接忽略当前的bar
-                                return;
-                            }
-
-                            k2.candle.high = f64::min(bar.high, k2.candle.high);
-                            k2.candle.low = f64::min(bar.low, k2.candle.low);
-                            k2.candle.time = if k2.candle.low <= bar.low {
-                                k2.candle.time
-                            } else {
-                                bar.time
-                            }
-                        }
-                        Direction::Up => {
-                            // 上包含，取高高
-                            if high_eq_low && bar.high == k2.candle.high {
-                                // 一字板特例，不处理，直接忽略当前的bar
-                                return;
-                            }
-
-                            k2.candle.high = f64::max(bar.high, k2.candle.high);
-                            k2.candle.low = f64::max(bar.low, k2.candle.low);
-                            k2.candle.time = if k2.candle.high >= bar.high {
-                                k2.candle.time
-                            } else {
-                                bar.time
-                            }
-                        }
-                    }
-                } else {
-                    // 无包含关系
-                    if self.window.len() == 3 {
-                        match self.check_fractal() {
-                            Some(f) => self.on_new_fractal(f),
-                            _ => {}
-                        }
-                    }
-
                     self.add_bar(bar);
                 }
             }
