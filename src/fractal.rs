@@ -8,7 +8,7 @@ pub enum FractalType {
 #[derive(Clone)]
 pub struct Fractal {
     ftype: FractalType,
-    id: u64,
+    index: u64,
     //high: f64,
     //low: f64,
     k1: Candle,
@@ -17,10 +17,10 @@ pub struct Fractal {
 }
 
 impl Fractal {
-    pub fn new(ftype: FractalType, id: u64, k1: Candle, k2: Candle, k3: Candle) -> Self {
+    pub fn new(ftype: FractalType, index: u64, k1: Candle, k2: Candle, k3: Candle) -> Self {
         Self {
             ftype,
-            id,
+            index,
             //high: f64::max(f64::max(k1.high, k2.high), k3.high),
             //low: f64::min(f64::min(k1.low, k2.low), k3.low),
             k1,
@@ -30,10 +30,10 @@ impl Fractal {
     }
 
     fn distance(&self, other: &Fractal) -> u64 {
-        if other.id > self.id {
-            other.id - self.id
+        if other.index > self.index {
+            other.index - self.index
         } else {
-            self.id - other.id
+            self.index - other.index
         }
     }
 

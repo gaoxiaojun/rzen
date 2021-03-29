@@ -5,13 +5,15 @@ use ringbuffer::{ConstGenericRingBuffer, RingBuffer, RingBufferExt, RingBufferWr
 
 
 pub(crate) struct CandleWithId {
-    pub id: u64, // id的最用是为了计算Candle之间的距离，严格笔要求分型之间有5根K，通过Candle1.id - Candle2.id就很容易检测是否满足条件，而无需保存整个Candle序列
+    // index的作用是为了计算Candle之间的距离，严格笔要求分型之间有5根K，通过index1 - index2 就很容易检测是否满足条件，而无需保存整个Candle序列
+    // 检测到分型的时候，分型的index就是分型中间Candle的index
+    pub index: u64,
     pub candle: Candle,
 }
 
 impl CandleWithId {
-    pub(crate) fn new(id: u64, candle: Candle) -> Self {
-        Self { id, candle }
+    pub(crate) fn new(index: u64, candle: Candle) -> Self {
+        Self { index, candle }
     }
 }
 
@@ -56,7 +58,7 @@ impl CandleQueue {
             );
             return Some(Fractal::new(
                 FractalType::Top,
-                k2.id,
+                k2.index,
                 k1.candle.clone(),
                 k2.candle.clone(),
                 k3.candle.clone(),
@@ -70,7 +72,7 @@ impl CandleQueue {
             );
             return Some(Fractal::new(
                 FractalType::Bottom,
-                k2.id,
+                k2.index,
                 k1.candle.clone(),
                 k2.candle.clone(),
                 k3.candle.clone(),
