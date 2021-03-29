@@ -181,6 +181,7 @@ impl CandleQueue {
                     self.add_bar(bar);
                 }
             }
+            
             _ => {
                 let processd = self.process_contain_relationship(bar);
                 if !processd {
