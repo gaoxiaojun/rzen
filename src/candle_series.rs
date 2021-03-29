@@ -161,7 +161,7 @@ impl CandleQueue {
     }
 
     // 处理K线包含关系，更新内部缓冲区，检测分型
-    pub fn update(&mut self, bar: &Bar) -> Option<Fractal> {
+    pub fn on_new_bar(&mut self, bar: &Bar) -> Option<Fractal> {
         let len = self.window.len();
         debug_assert!(len <= 3);
 
