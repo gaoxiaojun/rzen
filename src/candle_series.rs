@@ -96,11 +96,11 @@ impl CandleQueue {
             }
         };
 
-        let k2 = self.window.get_mut(-1).unwrap();
+        let current = self.window.get_mut(-1).unwrap();
 
-        // 检测k2,bar的是否有包含关系
-        if (k2.candle.high >= bar.high && k2.candle.low <= bar.low)
-            || (k2.candle.high <= bar.high && k2.candle.low >= bar.low)
+        // current,bar的是否有包含关系
+        if (current.candle.high >= bar.high && current.candle.low <= bar.low)
+            || (current.candle.high <= bar.high && current.candle.low >= bar.low)
         {
             // 特殊的一字板与前一根K高低点相同情况的处理
             let high_eq_low = bar.high == bar.low; // 一字板
@@ -108,30 +108,30 @@ impl CandleQueue {
             match direction {
                 Direction::Down => {
                     // 下包含，取低低
-                    if high_eq_low && bar.low == k2.candle.low {
+                    if high_eq_low && bar.low == current.candle.low {
                         // 一字板特例，不处理，直接忽略当前的bar
                         return true;
                     }
 
-                    k2.candle.high = f64::min(bar.high, k2.candle.high);
-                    k2.candle.low = f64::min(bar.low, k2.candle.low);
-                    k2.candle.time = if k2.candle.low <= bar.low {
-                        k2.candle.time
+                    current.candle.high = f64::min(bar.high, current.candle.high);
+                    current.candle.low = f64::min(bar.low, current.candle.low);
+                    current.candle.time = if current.candle.low <= bar.low {
+                        current.candle.time
                     } else {
                         bar.time
                     }
                 }
                 Direction::Up => {
                     // 上包含，取高高
-                    if high_eq_low && bar.high == k2.candle.high {
+                    if high_eq_low && bar.high == current.candle.high {
                         // 一字板特例，不处理，直接忽略当前的bar
                         return true;
                     }
 
-                    k2.candle.high = f64::max(bar.high, k2.candle.high);
-                    k2.candle.low = f64::max(bar.low, k2.candle.low);
-                    k2.candle.time = if k2.candle.high >= bar.high {
-                        k2.candle.time
+                    current.candle.high = f64::max(bar.high, current.candle.high);
+                    current.candle.low = f64::max(bar.low, current.candle.low);
+                    current.candle.time = if current.candle.high >= bar.high {
+                        current.candle.time
                     } else {
                         bar.time
                     }
@@ -181,7 +181,7 @@ impl CandleQueue {
                     self.add_bar(bar);
                 }
             }
-            
+
             _ => {
                 let processd = self.process_contain_relationship(bar);
                 if !processd {
