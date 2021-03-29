@@ -4,14 +4,14 @@ use crate::fractal::{Fractal, FractalType};
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer, RingBufferExt, RingBufferWrite};
 
 
-pub(crate) struct CandleWithId {
-    // index的作用是为了计算Candle之间的距离，严格笔要求分型之间有5根K，通过index1 - index2 就很容易检测是否满足条件，而无需保存整个Candle序列
+pub(crate) struct CandleWithIndex {
+    // index的作用是为了计算Candle之间的距离，严格笔要求分型之间有5根K，通过index2 - index1就很容易检测是否满足条件，而无需保存整个Candle序列
     // 检测到分型的时候，分型的index就是分型中间Candle的index
     pub index: u64,
     pub candle: Candle,
 }
 
-impl CandleWithId {
+impl CandleWithIndex {
     pub(crate) fn new(index: u64, candle: Candle) -> Self {
         Self { index, candle }
     }
@@ -23,22 +23,22 @@ enum Direction {
 }
 
 pub struct CandleQueue {
-    window: ConstGenericRingBuffer<CandleWithId, 3>,
-    next_id: u64,
+    window: ConstGenericRingBuffer<CandleWithIndex, 3>,
+    next_index: u64,
 }
 
 impl CandleQueue {
     pub fn new() -> Self {
         Self {
             window: ConstGenericRingBuffer::new(),
-            next_id: 0,
+            next_index: 0,
         }
     }
 
     fn add_candle(&mut self, candle: Candle) {
-        let cid = CandleWithId::new(self.next_id, candle);
-        self.next_id += 1;
-        self.window.push(cid);
+        let c = CandleWithIndex::new(self.next_index, candle);
+        self.next_index += 1;
+        self.window.push(c);
     }
 
     fn add_bar(&mut self, bar: &Bar) {
