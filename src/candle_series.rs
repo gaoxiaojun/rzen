@@ -2,6 +2,8 @@ use crate::bar::Bar;
 use crate::candle::Candle;
 use crate::fractal::{Fractal, FractalType};
 use ringbuffer::{ConstGenericRingBuffer, RingBuffer, RingBufferExt, RingBufferWrite};
+
+
 pub(crate) struct CandleWithId {
     pub id: u64, // id的最用是为了计算Candle之间的距离，严格笔要求分型之间有5根K，通过Candle1.id - Candle2.id就很容易检测是否满足条件，而无需保存整个Candle序列
     pub candle: Candle,
@@ -13,27 +15,21 @@ impl CandleWithId {
     }
 }
 
-trait FractalHandler {
-    fn on_new_fractal(&mut self, f: Fractal);
-}
-
 enum Direction {
     Up,
     Down,
 }
 
-pub struct CandleQueue<'a> {
+pub struct CandleQueue {
     window: ConstGenericRingBuffer<CandleWithId, 3>,
     next_id: u64,
-    handler: Box<dyn FnMut(Fractal) + 'a>,
 }
 
-impl<'a> CandleQueue<'a> {
-    pub fn new(handler: impl FnMut(Fractal) + 'a) -> Self {
+impl CandleQueue {
+    pub fn new() -> Self {
         Self {
             window: ConstGenericRingBuffer::new(),
             next_id: 0,
-            handler: Box::new(handler),
         }
     }
 
@@ -82,10 +78,6 @@ impl<'a> CandleQueue<'a> {
         }
 
         None
-    }
-
-    fn on_new_fractal(&mut self, f: Fractal) {
-        (self.handler)(f)
     }
 
     // 处理与当前bar的包含关系
@@ -149,7 +141,7 @@ impl<'a> CandleQueue<'a> {
         }
     }
 
-    pub fn update(&mut self, bar: &Bar) {
+    pub fn update(&mut self, bar: &Bar) -> Option<Fractal> {
         let len = self.window.len();
         debug_assert!(len <= 3);
 
@@ -158,7 +150,6 @@ impl<'a> CandleQueue<'a> {
             0 => {
                 // 队列中没有K线
                 self.add_bar(bar);
-                return;
             }
 
             1 => {
@@ -171,7 +162,7 @@ impl<'a> CandleQueue<'a> {
                 let k2_include_k1 = last.candle.high <= bar.high && last.candle.low >= bar.low;
                 if k1_include_k2 {
                     // 情况1，忽略当前Bar，直到遇到不包含的
-                    return;
+                    return None;
                 };
 
                 if k2_include_k1 {
@@ -191,14 +182,13 @@ impl<'a> CandleQueue<'a> {
             _ => {
                 let processd = self.process_contain_relationship(bar);
                 if !processd {
-                    match self.check_fractal() {
-                        Some(f) => self.on_new_fractal(f),
-                        _ => {}
-                    }
+                    let result = self.check_fractal();
                     self.add_bar(bar);
+                    return result
                 }
             }
         }
+        None
     }
 }
 
