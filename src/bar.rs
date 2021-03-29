@@ -1,4 +1,6 @@
 use crate::time::Time;
+
+// 未经过包含处理的K线
 #[derive(Clone)]
 pub struct Bar {
     pub time: Time,

@@ -5,6 +5,8 @@ pub enum FractalType {
     Top,
     Bottom,
 }
+
+// 分型
 #[derive(Clone)]
 pub struct Fractal {
     ftype: FractalType,
@@ -66,19 +68,31 @@ impl Fractal {
     }
 
     pub fn is_valid_fractal(&self, other: &Fractal) -> bool {
-        // case 1: 共用K
-        if self.distance(other) < 3 {
-            return false;
-        }
-        // case 2: 转折力度太小，有包含关系，这里前包含和后包含均不允许
-        let lh = self.high();
-        let ll = self.low();
-        let rh = other.high();
-        let rl = other.low();
-        if (lh >= rh && ll <= rl) || (rh >= lh && rl <= ll) {
-            false
-        } else {
-            true
-        }
+        _is_valid_fractal(self, other)
+    }
+}
+
+fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
+    // case 1: 共用K
+    if f1.distance(f2) < 3 {
+        return false;
+    }
+    // case 2: 转折力度太小，有包含关系，这里前包含和后包含均不允许
+    let lh = f1.high();
+    let ll = f1.low();
+    let rh = f2.high();
+    let rl = f2.low();
+    if (lh >= rh && ll <= rl) || (rh >= lh && rl <= ll) {
+        false
+    } else {
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
     }
 }
