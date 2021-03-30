@@ -116,6 +116,7 @@ fn _check_contain(direction: Direction, current: &mut CandleWithIndex, bar: &Bar
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Direction {
     Up,
     Down,
@@ -226,7 +227,7 @@ mod tests {
     use super::*;
     #[test]
     fn test_contain_relationship() {
-        let bar = Bar::new(10002, 100.0, 110.0, 90.0, 99.0);
+        let bar = Bar::new(10002, 100.0, 110.0, 95.0, 99.0);
         let k1 = Candle::new(10000, 100.0, 50.0);
         let k2 = Candle::new(10001, 120.0, 90.0);
         let c1 = CandleWithIndex::new(10, k1);
@@ -234,5 +235,8 @@ mod tests {
         let direction = _check_direction(&c1, &c2);
         let is_contained = _check_contain(direction, &mut c2, &bar);
         assert_eq!(is_contained, true);
+        assert_eq!(direction, Direction::Up);
+        assert_eq!(c2.candle.high, 120.0);
+        assert_eq!(c2.candle.low, 95.0);
     }
 }
