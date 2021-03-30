@@ -1,18 +1,19 @@
 use crate::fractal::{Fractal, FractalType};
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PenType {
     Up,
     Down,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PenStatus {
     New,
     Complete,
     Continue,
 }
 
+#[derive(Debug)]
 struct Pen {
     from: Fractal,
     to: Fractal,

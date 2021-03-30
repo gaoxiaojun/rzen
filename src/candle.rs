@@ -4,7 +4,7 @@ use crate::bar::Bar;
 use crate::time::Time;
 
 // 经过包含处理的K线
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Candle {
     pub time: Time,
     pub high: f64,

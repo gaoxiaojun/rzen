@@ -1,13 +1,13 @@
 use crate::{candle::Candle, time::Time};
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FractalType {
     Top,
     Bottom,
 }
 
 // 分型
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Fractal {
     ftype: FractalType,
     index: u64,

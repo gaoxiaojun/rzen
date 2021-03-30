@@ -121,6 +121,7 @@ enum Direction {
     Up,
     Down,
 }
+
 pub struct CandleQueue {
     window: ConstGenericRingBuffer<CandleWithIndex, 3>,
     next_index: u64,
