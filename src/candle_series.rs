@@ -16,16 +16,12 @@ impl CandleWithIndex {
     }
 }
 
-enum Direction {
-    Up,
-    Down,
-}
-
-pub struct CandleQueue {
-    window: ConstGenericRingBuffer<CandleWithIndex, 3>,
-    next_index: u64,
-}
-
+//  ------k2---------
+//  ------|----------
+//  -k1-|---|-k3-----
+//  ------|----------
+//  -----k2----------
+// 检查分型
 fn _check_fractal(
     k1: &CandleWithIndex,
     k2: &CandleWithIndex,
@@ -62,6 +58,7 @@ fn _check_fractal(
     None
 }
 
+// 检测包含方向
 fn _check_direction(k1: &CandleWithIndex, k2: &CandleWithIndex) -> Direction {
     if k1.candle.high > k2.candle.high {
         Direction::Down
@@ -70,6 +67,8 @@ fn _check_direction(k1: &CandleWithIndex, k2: &CandleWithIndex) -> Direction {
     }
 }
 
+// 检测并处理包含关系
+// 返回值: true:存在包含关系， false:没有包含关系
 fn _check_contain(direction: Direction, current: &mut CandleWithIndex, bar: &Bar) -> bool {
     // current,bar是否有包含关系
     if (current.candle.high >= bar.high && current.candle.low <= bar.low)
@@ -115,6 +114,15 @@ fn _check_contain(direction: Direction, current: &mut CandleWithIndex, bar: &Bar
     } else {
         false
     }
+}
+
+enum Direction {
+    Up,
+    Down,
+}
+pub struct CandleQueue {
+    window: ConstGenericRingBuffer<CandleWithIndex, 3>,
+    next_index: u64,
 }
 
 impl CandleQueue {
@@ -215,5 +223,16 @@ impl CandleQueue {
 
 #[cfg(test)]
 mod tests {
-    //#[test]
+    use super::*;
+    #[test]
+    fn test_contain_relationship() {
+        let bar = Bar::new(10002, 100.0, 110.0, 90.0, 99.0);
+        let k1 = Candle::new(10000, 100.0, 50.0);
+        let k2 = Candle::new(10001, 120.0, 90.0);
+        let c1 = CandleWithIndex::new(10, k1);
+        let mut c2 = CandleWithIndex::new(11, k2);
+        let direction = _check_direction(&c1, &c2);
+        let is_contained = _check_contain(direction, &mut c2, &bar);
+        assert_eq!(is_contained, true);
+    }
 }
