@@ -3,6 +3,7 @@ pub mod bar;
 pub mod candle;
 pub mod candle_series;
 pub mod fractal;
+pub mod pen;
 pub mod pivot;
 pub mod time;
 
