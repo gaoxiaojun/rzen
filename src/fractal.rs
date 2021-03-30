@@ -18,6 +18,14 @@ pub struct Fractal {
     k3: Candle,
 }
 
+fn distance(lhs: &Fractal, rhs:&Fractal) -> u64 {
+            if rhs.index > lhs.index {
+            rhs.index - lhs.index
+        } else {
+            lhs.index - rhs.index
+        }
+}
+
 impl Fractal {
     pub fn new(ftype: FractalType, index: u64, k1: Candle, k2: Candle, k3: Candle) -> Self {
         Self {
@@ -32,11 +40,7 @@ impl Fractal {
     }
 
     fn distance(&self, other: &Fractal) -> u64 {
-        if other.index > self.index {
-            other.index - self.index
-        } else {
-            self.index - other.index
-        }
+        distance(self, other)
     }
 
     pub fn has_enough_distance(&self, other: &Fractal) -> bool {
