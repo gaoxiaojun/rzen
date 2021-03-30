@@ -5,4 +5,7 @@ name = "rzen"
 version = "0.1.0"
 
 [dependencies]
-ringbuffer = { version = "0.5.0", default-features = false }
+ringbuffer = {version = "0.5.0", default-features = false}
+
+[lib]
+crate-type = ["cdylib"]
