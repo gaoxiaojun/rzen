@@ -75,6 +75,23 @@ impl Fractal {
         //self.low
         f64::min(f64::min(self.k1.low, self.k2.low), self.k3.low)
     }
+
+    pub fn has_same_price(&self, other: &Fractal) -> bool {
+        debug_assert!(self.ftype == other.ftype);
+        if self.ftype == FractalType::Top {
+            if self.high() == other.high() {
+                true
+            } else {
+                false
+            }
+        } else {
+            if self.low() == other.low() {
+                true
+            } else {
+                false
+            }
+        }
+    }
 }
 
 impl PartialEq for Fractal {
