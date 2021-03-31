@@ -48,6 +48,10 @@ impl Fractal {
         self.distance(other) >= 4
     }
 
+    pub fn type_is_diffrence(&self, other: &Fractal) -> bool {
+        self.ftype != other.ftype
+    }
+
     pub fn time(&self) -> Time {
         self.k2.time
     }

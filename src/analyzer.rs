@@ -1,6 +1,7 @@
 use crate::bar::Bar;
 use crate::candle::Candle;
-use crate::fractal::Fractal;
+use crate::fractal::{Fractal, FractalType};
+use crate::pen::{Pen, PenStatus, PenType};
 use crate::time::Time;
 
 pub struct Analyzer {}
@@ -14,3 +15,5 @@ impl Analyzer {
 
     pub fn on_new_pen() {}
 }
+
+fn pen_detect(currentPen: Option<&Pen>, currentFractal: Option<&Fractal>, newFractal: Fractal) {}
