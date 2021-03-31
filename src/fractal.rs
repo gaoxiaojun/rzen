@@ -18,12 +18,13 @@ pub struct Fractal {
     k3: Candle,
 }
 
-fn distance(lhs: &Fractal, rhs:&Fractal) -> u64 {
-            if rhs.index > lhs.index {
-            rhs.index - lhs.index
-        } else {
-            lhs.index - rhs.index
-        }
+// 计算分型之间K线的数量,K线是经过包含处理过的
+fn distance(lhs: &Fractal, rhs: &Fractal) -> u64 {
+    if rhs.index > lhs.index {
+        rhs.index - lhs.index
+    } else {
+        lhs.index - rhs.index
+    }
 }
 
 impl Fractal {
@@ -39,7 +40,7 @@ impl Fractal {
         }
     }
 
-    fn distance(&self, other: &Fractal) -> u64 {
+    pub(crate) fn distance(&self, other: &Fractal) -> u64 {
         distance(self, other)
     }
 
@@ -70,70 +71,19 @@ impl Fractal {
         //self.low
         f64::min(f64::min(self.k1.low, self.k2.low), self.k3.low)
     }
+}
 
-    pub fn is_valid_fractal(&self, other: &Fractal) -> bool {
-        _is_valid_fractal(self, other)
+impl PartialEq for Fractal {
+    fn eq(&self, other: &Self) -> bool {
+        self.time() == other.time()
     }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub enum FractalValidEnum {
-    Prev,
-    Next,
-    None,
-}
-
-// 处理前后分型共用K的情况
-// 规则一：如果两个分型类型不同，前分型为有效分型，后分型无效
-// 规则二：如果两个分型类型相同，以高低点决定那个分型有效
-fn share_k_fractal_is_valid(f1: &Fractal, f2: &Fractal) -> FractalValidEnum {
-    if (f1.distance(f2) < 3) {
-        if f1.fractal_type() != f2.fractal_type() {
-            return FractalValidEnum::Prev;
-        }
-
-        if f1.fractal_type() == FractalType::Top {
-            if f2.high() < f1.high() {
-                return FractalValidEnum::Prev;
-            } else {
-                return FractalValidEnum::Next;
-            }
-        } else {
-            if f2.low() > f1.low() {
-                return FractalValidEnum::Prev;
-            } else {
-                return FractalValidEnum::Next;
-            }
-        }
-    }
-    FractalValidEnum::None
-}
-
-// 处理前后分型包含的情况
-// 规则一：前分型包含后分型，后分型为无效分型
-// 规则二：后分型包含前分型，前分型为无效分型
-fn process_fractal_contain(f1: &Fractal, f2: &Fractal) -> bool {
-    let f1_high = f1.high();
-    let f1_low = f1.low();
-    let f2_high = f2.high();
-    let f2_low = f2.low();
-
-    if (f1_high >= f2_high && f1_low <= f2_low) || (f2_high >= f1_high && f2_low <= f1_low) {
-        false
-    } else {
-        true
-    }
-}
-
-fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
-    process_fractal_contain(f1, f2)
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{candle::Candle, fractal::Fractal, fractal::FractalType};
     #[test]
-    fn test_distance() {
+    fn test_distance_and_eq() {
         let k1 = Candle::new(2000000, 100.0, 50.0);
         let k2 = Candle::new(2000001, 150.0, 120.0);
         let k3 = Candle::new(2000002, 130.0, 60.0);
@@ -149,5 +99,8 @@ mod tests {
 
         assert_eq!(d1, d2);
         assert_eq!(d1, 2);
+
+        // test eq
+        assert_ne!(f1, f2);
     }
 }
