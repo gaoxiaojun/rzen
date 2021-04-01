@@ -64,13 +64,17 @@ fn test_ringbuffer() {
     assert_eq!(*w.get(-2).unwrap(), 20i32);
     assert_eq!(*w.get(-3).unwrap(), 10i32);
     assert_eq!(w.len(), 3);
+    assert_eq!(*w.get(0).unwrap(), 10i32);
     w.push(40);
     assert_eq!(w.len(), 3);
     assert_eq!(*w.get(-1).unwrap(), 40i32);
     assert_eq!(*w.get(-2).unwrap(), 30i32);
     assert_eq!(*w.get(-3).unwrap(), 20i32);
+    assert_eq!(*w.get(0).unwrap(), 20i32);
     w.pop_front();
     assert_eq!(w.len(), 2);
     assert_eq!(*w.get(-1).unwrap(), 40i32);
     assert_eq!(*w.get(-2).unwrap(), 30i32);
+    assert_eq!(*w.get(0).unwrap(), 30i32);
+    assert_eq!(*w.get(1).unwrap(), 40i32);
 }
