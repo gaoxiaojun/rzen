@@ -1,5 +1,3 @@
-use std::thread::current;
-
 use crate::fractal::{Fractal, FractalType};
 use crate::fractal_util::{MergeAction, _is_pen, _merge_same_type};
 use crate::pen::{Pen, PenType};
@@ -69,46 +67,48 @@ pub struct FractalQueue {
 
 // 寻找第一笔
 // case 0
-// +---+
-// |   |<-----A
-// +---+
+// +---+                            +---+
+// |   |<-----A             =====>  | A |
+// +---+                            +---+
 // 转case1
 
 // case 1
-// +---+
-// | A |<-----B
-// +---+
+// +---+                            +---+               +---+---+
+// | A |<-----B             ======> |A/B|        or     | A | B |
+// +---+                            +---+               +---+---+
 // AB同类型，合并AB，转case1
 // AB不同类型，保存B
 // 1.1 AB不成笔转case2
 // 1.2 AB成笔转case3
 
 // case 2
-// +---+---+
-// | A | B |<-----C
-// +---+---+
-// 前提：A B 不成笔
+// +---+---+                        +---+---+           +---+---+       +---+
+// | A | B |<-----C         =====>  | B | C |     or    | A |B/C|   or  |A/C|
+// +---+---+                        +---+---+           +---+---+       +---+
+// 前提：AB不成笔
 // 1.1 BC成笔 ---- 去掉A，保留BC，转case3
 // 1.2 BC不成笔
 // 1.2.1 BC同类，按同类规则处理决定保留B或者C, 转case2
-// 1.2.2 BC不同类，TODO
+// 1.2.2 BC不同类，那么AC同类，按同类规则处理决定保留A或者C，B被丢弃，转case1 // TODO  需要更好的策略
 
 // 已经有笔
 // case 3
-// +---+---+
-// | A | B |<-----C
-// +---+---+
-// 前提 1. AB成笔
-//  BC成笔   --- AB笔完成，emit笔完成事件，去掉A，剩下BC,转case3
-//  BC不成笔，保留C，转case4
+// +---+---+                        +---+---+           +---+---+---+
+// | A | B |<-----C         =====>  | B | C |      or   | A | B | C |
+// +---+---+                        +---+---+           +---+---+---+
+// 前提 AB成笔
+//  1.1 BC成笔   --- AB笔完成，emit笔完成事件，去掉A，剩下BC,转case3
+//  1.2 BC不成笔，
+//  1.2.1 BC类型不同，保留C，转case4
+//  1.2.2 BC类型相同，按同类规则处理决定保留B或者C，转case3
 
 // case 4
-// +---+---+---+
-// | A | B | C |<-----D
-// +---+---+---+
-// 前提 1. AB成笔 2. BC类型不同且BC不成笔
-// case 2.1 CD同类型-----按同类规则处理决定保留C或者D,转case4
-// case 2.2 CD不同类-----去掉C，BD按同类规则处理决定保留B或者D,转case3
+// +---+---+---+                    +---+---+---+       +---+---+
+// | A | B | C |<-----D     =====>  | A | B |C/D|   or  | A |B/D|
+// +---+---+---+                    +---+---+---+       +---+---+
+// 前提 AB成笔且BC类型不同且BC不成笔
+// 1.1 CD同类型-----按同类规则处理决定保留C或者D,转case4
+// 1.2 CD不同类-----去掉C，BD按同类规则处理决定保留B或者D,转case3
 
 impl FractalQueue {
     pub fn new() -> Self {
@@ -119,10 +119,12 @@ impl FractalQueue {
     }
 
     fn case0(&mut self, f: Fractal) {
+        debug_assert!(self.window.len() == 0 && self.current_pen.is_none());
         self.window.push(f)
     }
 
     fn case1(&mut self, f: Fractal) {
+        debug_assert!(self.window.len() == 1 && self.current_pen.is_none());
         let last = self.window.get(-1).unwrap();
         if last.fractal_type() == f.fractal_type() {
             let action = _merge_same_type(last, &f);
@@ -130,14 +132,101 @@ impl FractalQueue {
                 self.window.pop_back();
                 self.window.push(f);
             }
+        } else {
+            self.window.push(f);
         }
     }
 
-    fn case2(&mut self, f: Fractal) {}
+    fn case2(&mut self, f: Fractal) {
+        debug_assert!(
+            !_is_pen(self.window.get(-2).unwrap(), self.window.get(-1).unwrap())
+                && self.current_pen.is_none()
+        );
 
-    fn case3(&mut self, f: Fractal) {}
+        let b = self.window.get(-1).unwrap();
+        let bc_is_pen = _is_pen(b, &f);
+        if bc_is_pen {
+            self.window.pop_front();
+            self.window.push(f);
+            let new_b = self.window.get(-2).unwrap();
+            let c = self.window.get(-2).unwrap();
+            self.current_pen = Some(Pen::new(new_b.clone(), c.clone()));
+        } else {
+            if b.is_same_type(&f) {
+                let action = _merge_same_type(b, &f);
+                if action == MergeAction::Replace {
+                    self.window.pop_back();
+                    self.window.push(f);
+                }
+            } else {
+                let a = self.window.get(-2).unwrap();
+                let action = _merge_same_type(a, &f);
+                self.window.pop_back(); // remove b
+                if action == MergeAction::Replace {
+                    self.window.pop_back();
+                    self.window.push(f);
+                }
+            }
+        }
+    }
 
-    fn case4(&mut self, f: Fractal) {}
+    fn case3(&mut self, f: Fractal) {
+        debug_assert!(
+            _is_pen(self.window.get(-2).unwrap(), self.window.get(-1).unwrap())
+                && self.current_pen.is_some()
+        );
+        let b = self.window.get(-1).unwrap();
+        let bc_is_pen = _is_pen(b, &f);
+        if bc_is_pen {
+            let pen = self.current_pen.as_mut().unwrap();
+            pen.commit();
+            self.window.pop_front();
+            self.window.push(f);
+            let new_b = self.window.get(-2).unwrap();
+            let c = self.window.get(-1).unwrap();
+            self.current_pen = Some(Pen::new(new_b.clone(), c.clone()));
+        } else {
+            if b.is_same_type(&f) {
+                let action = _merge_same_type(b, &f);
+                if action == MergeAction::Replace {
+                    self.window.pop_back();
+                    self.window.push(f);
+                }
+            } else {
+                self.window.push(f);
+            }
+        }
+    }
+
+    fn case4(&mut self, f: Fractal) {
+        debug_assert!({
+            let ab_is_pen = _is_pen(self.window.get(-3).unwrap(), self.window.get(-2).unwrap());
+            let bc_is_same_type = self
+                .window
+                .get(-2)
+                .unwrap()
+                .is_same_type(self.window.get(-1).unwrap());
+            let bc_is_pen = _is_pen(self.window.get(-2).unwrap(), self.window.get(-1).unwrap());
+            ab_is_pen && !bc_is_same_type && !bc_is_pen && self.current_pen.is_some()
+        });
+
+        let c = self.window.get(-1).unwrap();
+        if c.is_same_type(&f) {
+            let action = _merge_same_type(c, &f);
+            if action == MergeAction::Replace {
+                self.window.pop_back();
+                self.window.push(f);
+            }
+        } else {
+            self.window.pop_back();
+            let b = self.window.get(-1).unwrap();
+            let action = _merge_same_type(b, &f);
+            if action == MergeAction::Replace {
+                self.window.pop_back();
+                self.window.push(f);
+            }
+        }
+    }
 
     pub fn on_new_fractal(&mut self, f: Fractal) -> Option<Pen> {
         let len = self.window.len();
@@ -153,47 +242,5 @@ impl FractalQueue {
         }
 
         None
-        /*match len {
-            0 => {
-                self.window.push(f);
-                None
-            }
-
-            1 => {
-                let last = self.window.get(-1).unwrap();
-                if last.fractal_type() == f.fractal_type() {
-                    let action = _merge_same_type(last, &f);
-                    if action == MergeAction::Replace {
-                        self.window.pop_back();
-                        self.window.push(f);
-                    }
-                    return None;
-                } else {
-                    let is_pen = _is_pen(last, &f);
-                    if is_pen {
-                        self.current_pen = Some(Pen::new(last.clone(), f));
-                    } else {
-                    }
-                }
-                None
-            }
-
-            _ => {
-                let start = self.window.get(-1).unwrap();
-                match _check_pen_action(&start, &f) {
-                    Some(PenAction::New(direction)) => {
-                        let pen = Some(Pen::new(start.clone(), f.clone()));
-                        self.window.push(f);
-                        pen
-                    }
-                    Some(PenAction::Continue) => {
-                        self.window.pop_front();
-                        self.window.push(f);
-                        None
-                    }
-                    _ => None,
-                }
-            }
-        }*/
     }
 }
