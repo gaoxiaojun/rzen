@@ -32,8 +32,8 @@ pub struct FractalQueue {
 // 前提：AB不成笔
 // 1.1 BC成笔 ---- 去掉A，保留BC，转case3
 // 1.2 BC不成笔
-// 1.2.1 BC同类，按同类规则处理决定保留B或者C, 转case2
-// 1.2.2 BC不同类，那么AC同类，按同类规则处理决定保留A或者C，B被丢弃，转case1 // TODO  需要更好的策略
+// 1.2.1 BC同类，按同类合并规则处理决定保留B或者C, 转case2
+// 1.2.2 BC不同类，那么AC同类，按同类合并规则处理决定保留A或者C，B被丢弃，转case1 // TODO  需要更好的策略
 
 // 已经有笔
 // case 3
@@ -44,15 +44,16 @@ pub struct FractalQueue {
 //  1.1 BC成笔   --- AB笔完成，emit笔完成事件，去掉A，剩下BC,转case3
 //  1.2 BC不成笔，
 //  1.2.1 BC类型不同，保留C，转case4
-//  1.2.2 BC类型相同，按同类规则处理决定保留B或者C，转case3
+//  1.2.2 BC类型相同，按同类合并规则处理决定保留B或者C，如果C覆盖B，更新笔，转case3
 
 // case 4
 // +---+---+---+                    +---+---+---+       +---+---+
 // | A | B | C |<-----D     =====>  | A | B |C/D|   or  | A |B/D|
 // +---+---+---+                    +---+---+---+       +---+---+
 // 前提 AB成笔且BC类型不同且BC不成笔
-// 1.1 CD同类型-----按同类规则处理决定保留C或者D,转case4
-// 1.2 CD不同类-----去掉C，BD按同类规则处理决定保留B或者D,转case3
+// 1.1 CD同类型-----按同类合并规则处理决定保留C或者D,转case4
+// 1.1.1 如果D覆盖C，要检测BD是否成笔,如果成笔，AB笔完成，emit笔完成事件，去掉A，转case3
+// 1.2 CD不同类-----去掉C，BD按同类合并规则处理决定保留B或者D,转case3
 
 impl FractalQueue {
     pub fn new() -> Self {
@@ -60,6 +61,23 @@ impl FractalQueue {
             window: RingBuffer::new(3),
             current_pen: None,
         }
+    }
+
+    fn ab_pen_complete_bc_pen_new(&mut self) {
+        debug_assert!(self.window.len() == 3);
+        let pen = self.current_pen.as_mut().unwrap();
+        pen.commit();
+        self.window.pop_front();
+        let new_a = self.window.get(0).unwrap();
+        let new_b = self.window.get(1).unwrap();
+        let new_pen = Pen::new(new_a.clone(), new_b.clone());
+        self.current_pen = Some(new_pen);
+    }
+
+    fn ab_pen_update(&mut self) {
+        debug_assert!(self.window.len() == 2);
+        let new_b = self.window.get(1).unwrap();
+        self.current_pen.as_mut().unwrap().update_to(new_b.clone());
     }
 
     fn case0(&mut self, f: Fractal) {
@@ -93,8 +111,8 @@ impl FractalQueue {
             self.window.pop_front();
             self.window.push(f);
             let new_b = self.window.get(-2).unwrap();
-            let c = self.window.get(-2).unwrap();
-            let pen = Pen::new(new_b.clone(), c.clone());
+            let new_c = self.window.get(-1).unwrap();
+            let pen = Pen::new(new_b.clone(), new_c.clone());
             self.current_pen = Some(pen);
         } else {
             if b.is_same_type(&f) {
@@ -123,22 +141,15 @@ impl FractalQueue {
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = _is_pen(b, &f);
         if bc_is_pen {
-            let pen = self.current_pen.as_mut().unwrap();
-            pen.commit();
-            self.window.pop_front();
             self.window.push(f);
-            let new_b = self.window.get(-2).unwrap();
-            let c = self.window.get(-1).unwrap();
-            let new_pen = Pen::new(new_b.clone(), c.clone());
-            self.current_pen = Some(new_pen);
+            self.ab_pen_complete_bc_pen_new();
         } else {
             if b.is_same_type(&f) {
                 let action = _merge_same_type(b, &f);
                 if action == MergeAction::Replace {
-                    let c = f.clone();
                     self.window.pop_back();
-                    self.window.push(c);
-                    self.current_pen.as_mut().unwrap().update_to(f);
+                    self.window.push(f);
+                    self.ab_pen_update();
                 }
             } else {
                 self.window.push(f);
@@ -164,6 +175,10 @@ impl FractalQueue {
             if action == MergeAction::Replace {
                 self.window.pop_back();
                 self.window.push(f);
+                let bc_is_pen = _is_pen(self.window.get(-2).unwrap(), self.window.get(-1).unwrap());
+                if bc_is_pen {
+                    self.ab_pen_complete_bc_pen_new();
+                }
             }
         } else {
             self.window.pop_back();
