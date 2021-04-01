@@ -15,5 +15,3 @@ impl Analyzer {
 
     pub fn on_new_pen() {}
 }
-
-fn pen_detect(currentPen: Option<&Pen>, currentFractal: Option<&Fractal>, newFractal: Fractal) {}
