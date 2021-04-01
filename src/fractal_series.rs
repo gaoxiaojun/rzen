@@ -1,63 +1,7 @@
-use crate::fractal::{Fractal, FractalType};
+use crate::fractal::Fractal;
 use crate::fractal_util::{MergeAction, _is_pen, _merge_same_type};
-use crate::pen::{Pen, PenType};
+use crate::pen::Pen;
 use crate::ringbuffer::RingBuffer;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TwoFractalTypeEnum {
-    TopTop,
-    TopBottom,
-    BottomTop,
-    BottomBottom,
-}
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TwoFractalPriceEnum {
-    HighLow,
-    LowHigh,
-}
-
-pub(crate) fn get_two_fractal_type(f1: &Fractal, f2: &Fractal) -> TwoFractalTypeEnum {
-    match (f1.fractal_type(), f2.fractal_type()) {
-        (FractalType::Top, FractalType::Top) => TwoFractalTypeEnum::TopTop,
-        (FractalType::Top, FractalType::Bottom) => TwoFractalTypeEnum::TopBottom,
-        (FractalType::Bottom, FractalType::Top) => TwoFractalTypeEnum::BottomTop,
-        (FractalType::Bottom, FractalType::Bottom) => TwoFractalTypeEnum::BottomBottom,
-    }
-}
-
-pub(crate) fn get_two_fractal_price(f1: &Fractal, f2: &Fractal) -> TwoFractalPriceEnum {
-    if f1.high() >= f2.high() {
-        TwoFractalPriceEnum::HighLow
-    } else {
-        TwoFractalPriceEnum::LowHigh
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum PenAction {
-    New(PenType),
-    Continue,
-}
-
-pub(crate) fn _check_pen_action(f1: &Fractal, f2: &Fractal) -> Option<PenAction> {
-    let two_type = get_two_fractal_type(f1, f2);
-    let two_price = get_two_fractal_price(f1, f2);
-    let two_distance = f1.has_enough_distance(f2);
-
-    match (two_type, two_distance, two_price) {
-        (TwoFractalTypeEnum::TopBottom, true, TwoFractalPriceEnum::HighLow) => {
-            Some(PenAction::New(PenType::Down))
-        }
-        (TwoFractalTypeEnum::BottomTop, true, TwoFractalPriceEnum::LowHigh) => {
-            Some(PenAction::New(PenType::Up))
-        }
-        (TwoFractalTypeEnum::TopTop, _, TwoFractalPriceEnum::LowHigh) => Some(PenAction::Continue),
-        (TwoFractalTypeEnum::BottomBottom, _, TwoFractalPriceEnum::HighLow) => {
-            Some(PenAction::Continue)
-        }
-        (_, _, _) => None,
-    }
-}
 
 // 考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
 pub struct FractalQueue {
@@ -150,7 +94,8 @@ impl FractalQueue {
             self.window.push(f);
             let new_b = self.window.get(-2).unwrap();
             let c = self.window.get(-2).unwrap();
-            self.current_pen = Some(Pen::new(new_b.clone(), c.clone()));
+            let pen = Pen::new(new_b.clone(), c.clone());
+            self.current_pen = Some(pen);
         } else {
             if b.is_same_type(&f) {
                 let action = _merge_same_type(b, &f);
@@ -184,7 +129,8 @@ impl FractalQueue {
             self.window.push(f);
             let new_b = self.window.get(-2).unwrap();
             let c = self.window.get(-1).unwrap();
-            self.current_pen = Some(Pen::new(new_b.clone(), c.clone()));
+            let new_pen = Pen::new(new_b.clone(), c.clone());
+            self.current_pen = Some(new_pen);
         } else {
             if b.is_same_type(&f) {
                 let action = _merge_same_type(b, &f);
