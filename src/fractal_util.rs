@@ -89,7 +89,6 @@ pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
 }
 
 pub fn _is_pen(f1: &Fractal, f2: &Fractal) -> bool {
-    debug_assert!(f1.fractal_type() != f2.fractal_type());
     if f1.fractal_type() == FractalType::Top
         && f2.fractal_type() == FractalType::Bottom
         && f1.has_enough_distance(f2)
