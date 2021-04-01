@@ -9,51 +9,62 @@ pub struct FractalQueue {
     current_pen: Option<Pen>,
 }
 
-// 寻找第一笔
+// 一、寻找第一笔
 // case 0
-// +---+                            +---+
+// +-0-+                            +-1-+
 // |   |<-----A             =====>  | A |
 // +---+                            +---+
-// 转case1
+// 保留A，转case1
 
 // case 1
-// +---+                            +---+               +---+---+
+// +-1-+                            +-1-+               +--2-3--+
 // | A |<-----B             ======> |A/B|        or     | A | B |
 // +---+                            +---+               +---+---+
-// AB同类型，合并AB，转case1
-// AB不同类型，保存B
-// 1.1 AB不成笔转case2
-// 1.2 AB成笔转case3
+// 1.1 AB同类型，按同类合并规则处理AB，转case1
+// 1.2 AB不同类型，保存B
+// 1.2.1 AB不成笔转case2
+// 1.2.2 AB成笔,新建笔变量，转case3
 
 // case 2
-// +---+---+                        +---+---+           +---+---+       +---+
+// +---2---+                        +---3---+           +--2-3--+       +-1-+
 // | A | B |<-----C         =====>  | B | C |     or    | A |B/C|   or  |A/C|
 // +---+---+                        +---+---+           +---+---+       +---+
 // 前提：AB不成笔
-// 1.1 BC成笔 ---- 去掉A，保留BC，转case3
+// 1.1 BC成笔 ---- 去掉A，保留BC，新建笔变量，转case3
 // 1.2 BC不成笔
-// 1.2.1 BC同类，按同类合并规则处理决定保留B或者C, 转case2
-// 1.2.2 BC不同类，那么AC同类，按同类合并规则处理决定保留A或者C，B被丢弃，转case1 // TODO  需要更好的策略
+// 1.2.1 BC同类，按同类合并规则处理
+// 1.2.1.1 如果保留C，要检测AC是否成笔，如果成笔，新建笔变量, 转case3
+// 1.2.1.2 如果保留B，抛弃C，转case2
+// 1.2.2 BC不同类，按同类合并规则处理AC
+// 1.2.2.1 如果保留A，则抛弃C
+// 1.2.2.2 如果保留C，抛弃AB，转case1
 
-// 已经有笔
+// 二、已经有笔
 // case 3
-// +---+---+                        +---+---+           +---+---+---+
+// +---3---+                        +---3---+           +---+-4-+---+
 // | A | B |<-----C         =====>  | B | C |      or   | A | B | C |
 // +---+---+                        +---+---+           +---+---+---+
 // 前提 AB成笔
-//  1.1 BC成笔   --- AB笔完成，emit笔完成事件，去掉A，剩下BC,转case3
+//  1.1 BC成笔   --- AB笔完成，emit笔完成事件，去掉A，剩下BC,更新笔变量，转case3
 //  1.2 BC不成笔，
 //  1.2.1 BC类型不同，保留C，转case4
-//  1.2.2 BC类型相同，按同类合并规则处理决定保留B或者C，如果C覆盖B，更新笔，转case3
+//  1.2.2 BC类型相同，按同类合并规则处理BC
+//  1.2.2.1如果保留C，更新笔端点，转case3
+//  1.2.2.2如果保留B，抛弃C，转case3
 
 // case 4
-// +---+---+---+                    +---+---+---+       +---+---+
+// +---+-4-+---+                    +---+-4-+---+       +---3---+
 // | A | B | C |<-----D     =====>  | A | B |C/D|   or  | A |B/D|
 // +---+---+---+                    +---+---+---+       +---+---+
 // 前提 AB成笔且BC类型不同且BC不成笔
-// 1.1 CD同类型-----按同类合并规则处理决定保留C或者D,转case4
-// 1.1.1 如果D覆盖C，要检测BD是否成笔,如果成笔，AB笔完成，emit笔完成事件，去掉A，转case3
-// 1.2 CD不同类-----去掉C，BD按同类合并规则处理决定保留B或者D,转case3
+// 1.1 CD同类型-----按同类合并规则处理CD
+// 1.1.1 如果保留D，要检测BD是否成笔
+// 1.1.1.1如果成笔，AB笔完成，emit笔完成事件，去掉A，剩下BD,更新笔变量，转case3
+// 1.1.1.2如果不成笔，转 case4
+// 1.1.2 如果保留C，抛弃D，转case3
+// 1.2 CD不同类-----去掉C，按同类合并规则处理BD
+// 1.2.1 如果保留B,转case3
+// 1.2.2 如果保留D，更新笔端点，转case3
 
 impl FractalQueue {
     pub fn new() -> Self {
@@ -67,11 +78,40 @@ impl FractalQueue {
         debug_assert!(self.window.len() == 3);
         let pen = self.current_pen.as_mut().unwrap();
         pen.commit();
+        self.bc_new_pen();
+    }
+
+    fn _new_pen(&mut self, start_index: usize) {
+        debug_assert!(self.window.len() >= 2 + start_index);
+        let new_from = self.window.get(start_index as isize).unwrap();
+        let new_to = self.window.get((start_index + 1) as isize).unwrap();
+        let pen = Pen::new(new_from.clone(), new_to.clone());
+        self.current_pen = Some(pen);
+    }
+
+    fn bc_new_pen(&mut self) {
+        self._new_pen(1);
         self.window.pop_front();
-        let new_a = self.window.get(0).unwrap();
-        let new_b = self.window.get(1).unwrap();
-        let new_pen = Pen::new(new_a.clone(), new_b.clone());
-        self.current_pen = Some(new_pen);
+    }
+
+    fn ab_new_pen(&mut self) {
+        self._new_pen(0);
+    }
+
+    fn _is_pen(&self, start_index: usize) -> bool {
+        debug_assert!(self.window.len() >= 2 + start_index);
+        _is_pen(
+            self.window.get(start_index as isize).unwrap(),
+            self.window.get((start_index + 1) as isize).unwrap(),
+        )
+    }
+
+    fn bc_is_pen(&self) -> bool {
+        self._is_pen(1)
+    }
+
+    fn ab_is_pen(&self) -> bool {
+        self._is_pen(0)
     }
 
     fn ab_pen_update(&mut self) {
@@ -96,6 +136,9 @@ impl FractalQueue {
             }
         } else {
             self.window.push(f);
+            if self.ab_is_pen() {
+                self.ab_new_pen();
+            }
         }
     }
 
@@ -108,25 +151,23 @@ impl FractalQueue {
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = _is_pen(b, &f);
         if bc_is_pen {
-            self.window.pop_front();
             self.window.push(f);
-            let new_b = self.window.get(-2).unwrap();
-            let new_c = self.window.get(-1).unwrap();
-            let pen = Pen::new(new_b.clone(), new_c.clone());
-            self.current_pen = Some(pen);
+            self.bc_new_pen();
         } else {
             if b.is_same_type(&f) {
                 let action = _merge_same_type(b, &f);
                 if action == MergeAction::Replace {
                     self.window.pop_back();
                     self.window.push(f);
+                    if self.bc_is_pen() {
+                        self.bc_new_pen();
+                    }
                 }
             } else {
                 let a = self.window.get(-2).unwrap();
                 let action = _merge_same_type(a, &f);
-                self.window.pop_back(); // remove b
                 if action == MergeAction::Replace {
-                    self.window.pop_back();
+                    self.window.clear();
                     self.window.push(f);
                 }
             }
