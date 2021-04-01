@@ -67,12 +67,19 @@ pub struct FractalQueue {
     current_pen: Option<Pen>,
 }
 
+// 寻找第一笔
+// case 0
+// +---+
+// |   |<-----A
+// +---+
+// 转case1
+
 // case 1
 // +---+
 // | A |<-----B
 // +---+
 // AB同类型，合并AB，转case1
-// AB不同类型
+// AB不同类型，保存B
 // 1.1 AB不成笔转case2
 // 1.2 AB成笔转case3
 
@@ -84,8 +91,9 @@ pub struct FractalQueue {
 // 1.1 BC成笔 ---- 去掉A，保留BC，转case3
 // 1.2 BC不成笔
 // 1.2.1 BC同类，按同类规则处理决定保留B或者C, 转case2
-// 1.2.2 BC不同类，
+// 1.2.2 BC不同类，TODO
 
+// 已经有笔
 // case 3
 // +---+---+
 // | A | B |<-----C
@@ -110,10 +118,42 @@ impl FractalQueue {
         }
     }
 
+    fn case0(&mut self, f: Fractal) {
+        self.window.push(f)
+    }
+
+    fn case1(&mut self, f: Fractal) {
+        let last = self.window.get(-1).unwrap();
+        if last.fractal_type() == f.fractal_type() {
+            let action = _merge_same_type(last, &f);
+            if action == MergeAction::Replace {
+                self.window.pop_back();
+                self.window.push(f);
+            }
+        }
+    }
+
+    fn case2(&mut self, f: Fractal) {}
+
+    fn case3(&mut self, f: Fractal) {}
+
+    fn case4(&mut self, f: Fractal) {}
+
     pub fn on_new_fractal(&mut self, f: Fractal) -> Option<Pen> {
         let len = self.window.len();
+        let is_some = self.current_pen.is_some();
 
-        match len {
+        match (is_some, len) {
+            (false, 0) => self.case0(f),
+            (false, 1) => self.case1(f),
+            (false, 2) => self.case2(f),
+            (true, 2) => self.case3(f),
+            (true, 3) => self.case4(f),
+            (_, _) => {}
+        }
+
+        None
+        /*match len {
             0 => {
                 self.window.push(f);
                 None
@@ -154,6 +194,6 @@ impl FractalQueue {
                     _ => None,
                 }
             }
-        }
+        }*/
     }
 }
