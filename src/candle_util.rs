@@ -96,10 +96,8 @@ pub(crate) fn _check_contain(
 
                 current.candle.high = f64::min(bar.high, current.candle.high);
                 current.candle.low = f64::min(bar.low, current.candle.low);
-                current.candle.time = if current.candle.low <= bar.low {
-                    current.candle.time
-                } else {
-                    bar.time
+                if current.candle.low > bar.low {
+                    current.candle.time = bar.time;
                 }
             }
 
@@ -112,10 +110,8 @@ pub(crate) fn _check_contain(
 
                 current.candle.high = f64::max(bar.high, current.candle.high);
                 current.candle.low = f64::max(bar.low, current.candle.low);
-                current.candle.time = if current.candle.high >= bar.high {
-                    current.candle.time
-                } else {
-                    bar.time
+                if current.candle.high < bar.high {
+                    current.candle.time = bar.time;
                 }
             }
         }
