@@ -22,7 +22,14 @@ pub struct Pen {
 }
 
 impl Pen {
-    pub fn new(from: Fractal, to: Fractal, ptype: PenType) -> Self {
+    pub fn new(from: Fractal, to: Fractal) -> Self {
+        debug_assert!(from.fractal_type() != to.fractal_type());
+        let ptype = if from.fractal_type() == FractalType::Top {
+            PenType::Down
+        } else {
+            PenType::Up
+        };
+
         Self {
             from,
             to,
