@@ -123,25 +123,4 @@ mod tests {
         assert_eq!(c2.candle.high, 120.0);
         assert_eq!(c2.candle.low, 95.0);
     }
-
-    #[test]
-    fn test_skip() {
-        let mut w = RingBuffer::<i32>::new(3);
-        w.push(10);
-        w.push(20);
-        w.push(30);
-        assert_eq!(*w.get(-1).unwrap(), 30i32);
-        assert_eq!(*w.get(-2).unwrap(), 20i32);
-        assert_eq!(*w.get(-3).unwrap(), 10i32);
-        assert_eq!(w.len(), 3);
-        w.push(40);
-        assert_eq!(w.len(), 3);
-        assert_eq!(*w.get(-1).unwrap(), 40i32);
-        assert_eq!(*w.get(-2).unwrap(), 30i32);
-        assert_eq!(*w.get(-3).unwrap(), 20i32);
-        w.pop_front();
-        assert_eq!(w.len(), 2);
-        assert_eq!(*w.get(-1).unwrap(), 40i32);
-        assert_eq!(*w.get(-2).unwrap(), 30i32);
-    }
 }
