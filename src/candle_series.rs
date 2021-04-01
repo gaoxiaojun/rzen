@@ -86,15 +86,15 @@ impl CandleQueue {
             }
 
             2 => {
-                let processd = self.process_contain_relationship(bar);
-                if !processd {
+                let merged = self.process_contain_relationship(bar);
+                if !merged {
                     self.add_bar(bar);
                 }
             }
 
             _ => {
-                let processd = self.process_contain_relationship(bar);
-                if !processd {
+                let merged = self.process_contain_relationship(bar);
+                if !merged {
                     let result = self.check_fractal();
                     self.add_bar(bar);
                     return result;
