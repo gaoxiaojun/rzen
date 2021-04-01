@@ -30,14 +30,16 @@ pub struct FractalQueue {
 // | A | B |<-----C         =====>  | B | C |     or    | A |B/C|   or  |A/C|
 // +---+---+                        +---+---+           +---+---+       +---+
 // 前提：AB不成笔
-// 1.1 BC成笔 ---- 去掉A，保留BC，新建笔变量，转case3
-// 1.2 BC不成笔
-// 1.2.1 BC同类，按同类合并规则处理
-// 1.2.1.1 如果保留C，要检测AC是否成笔，如果成笔，新建笔变量, 转case3
-// 1.2.1.2 如果保留B，抛弃C，转case2
-// 1.2.2 BC不同类，按同类合并规则处理AC
-// 1.2.2.1 如果保留A，则抛弃C
-// 1.2.2.2 如果保留C，抛弃AB，转case1
+// 2.1 BC成笔 ---- 去掉A，保留BC，新建笔变量，转case3
+// 2.2 BC不成笔
+// 2.2.1 BC同类，按同类合并规则处理
+// 2.2.1.1 如果保留C，要检测AC是否成笔
+// 2.2.1.1.1如果成笔，新建笔变量, 转case3
+// 2.2.1.1.2如果不成笔，转case 2
+// 2.2.1.2 如果保留B，抛弃C，转case2
+// 2.2.2 BC不同类，按同类合并规则处理AC
+// 2.2.2.1 如果保留A，则抛弃C
+// 2.2.2.2 如果保留C，抛弃AB，转case1
 
 // 二、已经有笔
 // case 3
@@ -45,26 +47,26 @@ pub struct FractalQueue {
 // | A | B |<-----C         =====>  | B | C |      or   | A | B | C |
 // +---+---+                        +---+---+           +---+---+---+
 // 前提 AB成笔
-//  1.1 BC成笔   --- AB笔完成，emit笔完成事件，去掉A，剩下BC,更新笔变量，转case3
-//  1.2 BC不成笔，
-//  1.2.1 BC类型不同，保留C，转case4
-//  1.2.2 BC类型相同，按同类合并规则处理BC
-//  1.2.2.1如果保留C，更新笔端点，转case3
-//  1.2.2.2如果保留B，抛弃C，转case3
+//  3.1 BC成笔   --- AB笔完成，emit笔完成事件，去掉A，剩下BC,更新笔变量，转case3
+//  3.2 BC不成笔，
+//  3.2.1 BC类型不同，保留C，转case4
+//  3.2.2 BC类型相同，按同类合并规则处理BC
+//  3.2.2.1如果保留C，更新笔端点，转case3
+//  3.2.2.2如果保留B，抛弃C，转case3
 
 // case 4
 // +---+-4-+---+                    +---+-4-+---+       +---3---+
 // | A | B | C |<-----D     =====>  | A | B |C/D|   or  | A |B/D|
 // +---+---+---+                    +---+---+---+       +---+---+
 // 前提 AB成笔且BC类型不同且BC不成笔
-// 1.1 CD同类型-----按同类合并规则处理CD
-// 1.1.1 如果保留D，要检测BD是否成笔
-// 1.1.1.1如果成笔，AB笔完成，emit笔完成事件，去掉A，剩下BD,更新笔变量，转case3
-// 1.1.1.2如果不成笔，转 case4
-// 1.1.2 如果保留C，抛弃D，转case3
-// 1.2 CD不同类-----去掉C，按同类合并规则处理BD
-// 1.2.1 如果保留B,转case3
-// 1.2.2 如果保留D，更新笔端点，转case3
+// 4.1 CD同类型-----按同类合并规则处理CD
+// 4.1.1 如果保留D，要检测BD是否成笔
+// 4.1.1.1如果BD成笔，AB笔完成，emit笔完成事件，去掉A，剩下BD,更新笔变量，转case3
+// 4.1.1.2如果不成笔，转 case4
+// 4.1.2 如果保留C，抛弃D，转case3
+// 4.2 CD不同类-----去掉C，按同类合并规则处理BD
+// 4.2.1 如果保留B,转case3
+// 4.2.2 如果保留D，更新笔端点，转case3
 
 impl FractalQueue {
     pub fn new() -> Self {
@@ -78,7 +80,7 @@ impl FractalQueue {
         debug_assert!(self.window.len() == 3);
         let pen = self.current_pen.as_mut().unwrap();
         pen.commit();
-        self.bc_new_pen();
+        self.bc_new_pen_and_pop_a();
     }
 
     fn _new_pen(&mut self, start_index: usize) {
@@ -89,7 +91,7 @@ impl FractalQueue {
         self.current_pen = Some(pen);
     }
 
-    fn bc_new_pen(&mut self) {
+    fn bc_new_pen_and_pop_a(&mut self) {
         self._new_pen(1);
         self.window.pop_front();
     }
@@ -129,14 +131,17 @@ impl FractalQueue {
         debug_assert!(self.window.len() == 1 && self.current_pen.is_none());
         let last = self.window.get(-1).unwrap();
         if last.fractal_type() == f.fractal_type() {
+            // 1.1
             let action = _merge_same_type(last, &f);
             if action == MergeAction::Replace {
                 self.window.pop_back();
                 self.window.push(f);
             }
         } else {
+            // 1.2
             self.window.push(f);
             if self.ab_is_pen() {
+                // 1.2.2
                 self.ab_new_pen();
             }
         }
@@ -151,22 +156,30 @@ impl FractalQueue {
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = _is_pen(b, &f);
         if bc_is_pen {
+            // 2.1
             self.window.push(f);
-            self.bc_new_pen();
+            self.bc_new_pen_and_pop_a();
         } else {
+            // 2.2
             if b.is_same_type(&f) {
+                // 2.2.1
                 let action = _merge_same_type(b, &f);
                 if action == MergeAction::Replace {
-                    self.window.pop_back();
+                    // 2.2.1.1
+                    self.window.pop_back(); // pop b
                     self.window.push(f);
-                    if self.bc_is_pen() {
-                        self.bc_new_pen();
+                    // test ac is pen?
+                    if self.ab_is_pen() {
+                        // 2.2.1.1.1
+                        self.ab_new_pen();
                     }
                 }
             } else {
+                // 2.2.2
                 let a = self.window.get(-2).unwrap();
                 let action = _merge_same_type(a, &f);
                 if action == MergeAction::Replace {
+                    // 2.2.2.2
                     self.window.clear();
                     self.window.push(f);
                 }
@@ -182,17 +195,20 @@ impl FractalQueue {
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = _is_pen(b, &f);
         if bc_is_pen {
+            // 3.1
             self.window.push(f);
             self.ab_pen_complete_bc_pen_new();
         } else {
             if b.is_same_type(&f) {
                 let action = _merge_same_type(b, &f);
                 if action == MergeAction::Replace {
+                    // 3.2.2.1
                     self.window.pop_back();
                     self.window.push(f);
                     self.ab_pen_update();
                 }
             } else {
+                // 3.2.1
                 self.window.push(f);
             }
         }
@@ -212,22 +228,27 @@ impl FractalQueue {
 
         let c = self.window.get(-1).unwrap();
         if c.is_same_type(&f) {
+            // 4.1
             let action = _merge_same_type(c, &f);
             if action == MergeAction::Replace {
+                // 4.1.1
                 self.window.pop_back();
                 self.window.push(f);
-                let bc_is_pen = _is_pen(self.window.get(-2).unwrap(), self.window.get(-1).unwrap());
-                if bc_is_pen {
+                if self.bc_is_pen() {
+                    // 4.1.1.1
                     self.ab_pen_complete_bc_pen_new();
                 }
             }
         } else {
+            // 4.2
             self.window.pop_back();
             let b = self.window.get(-1).unwrap();
             let action = _merge_same_type(b, &f);
             if action == MergeAction::Replace {
+                // 4.2.2
                 self.window.pop_back();
                 self.window.push(f);
+                self.ab_pen_update();
             }
         }
     }
