@@ -11,10 +11,3 @@ pub mod pen;
 pub mod pivot;
 pub mod ringbuffer;
 pub mod time;
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
