@@ -135,8 +135,10 @@ impl FractalQueue {
             if b.is_same_type(&f) {
                 let action = _merge_same_type(b, &f);
                 if action == MergeAction::Replace {
+                    let c = f.clone();
                     self.window.pop_back();
-                    self.window.push(f);
+                    self.window.push(c);
+                    self.current_pen.as_mut().unwrap().update_to(f);
                 }
             } else {
                 self.window.push(f);
