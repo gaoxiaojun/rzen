@@ -48,7 +48,7 @@ impl Fractal {
         self.distance(other) >= 4
     }
 
-    pub fn type_is_diffrence(&self, other: &Fractal) -> bool {
+    pub fn is_same_type(&self, other: &Fractal) -> bool {
         self.ftype != other.ftype
     }
 
@@ -90,6 +90,16 @@ impl Fractal {
             } else {
                 false
             }
+        }
+    }
+
+    pub fn is_contain(&self, other: &Fractal) -> bool {
+        if (self.high() >= other.high() && self.low() <= other.low())
+            || (other.high() >= self.high() && other.low() <= self.low())
+        {
+            true
+        } else {
+            false
         }
     }
 }
