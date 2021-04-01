@@ -46,10 +46,6 @@ impl Pen {
     pub fn commit(&mut self) {
         self.status = PenStatus::Complete;
     }
-
-    pub fn on_new_fractal(&mut self, f: Fractal) {
-        // 前顶后低 and 距离足够 and 前高后低
-    }
 }
 
 #[cfg(test)]
