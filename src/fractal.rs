@@ -49,7 +49,7 @@ impl Fractal {
     }
 
     pub fn is_same_type(&self, other: &Fractal) -> bool {
-        self.ftype != other.ftype
+        self.ftype == other.ftype
     }
 
     pub fn time(&self) -> Time {

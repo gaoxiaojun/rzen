@@ -181,7 +181,17 @@ impl FractalQueue {
     }
 
     fn state3(&mut self, f: Fractal) {
-        debug_assert!(self.ab_is_pen() && self.current_pen.is_some() && self.window.len() == 2);
+        //debug_assert!(self.ab_is_pen());
+        debug_assert!(self.current_pen.is_some());
+        debug_assert!(self.window.len() == 2);
+
+        if !self.ab_is_pen() {
+            println!(
+                "{:?} \n {:?}",
+                self.window.get(0).unwrap(),
+                self.window.get(1).unwrap()
+            );
+        }
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = _is_pen(b, &f);
         if bc_is_pen {
@@ -275,14 +285,41 @@ impl FractalQueue {
 #[cfg(test)]
 mod tests {
     use crate::bar::Bar;
+    use crate::candle::Candle;
     use crate::candle_series::CandleQueue;
-    use crate::fractal::Fractal;
+    use crate::fractal::{Fractal, FractalType};
+    use crate::fractal_series::FractalQueue;
+    use crate::fractal_util::_is_pen;
     use crate::time::Time;
     use csv;
+
+    #[test]
+    fn test_is_pen() {
+        let k1 = Candle::new(1052779380000, 1.15642, 1.15627);
+        let k2 = Candle::new(1052779380000, 1.15645, 1.15634);
+        let k3 = Candle::new(1052779500000, 1.15638, 1.1562);
+        let f1 = Fractal::new(FractalType::Top, 1118, k1, k2, k3);
+        let k4 = Candle::new(1052780640000, 1.15604, 1.1559);
+        let k5 = Candle::new(1052780820000, 1.15602, 1.15576);
+        let k6 = Candle::new(1052780940000, 1.15624, 1.15599);
+        let f2 = Fractal::new(FractalType::Bottom, 1132, k4, k5, k6);
+        let has_enough_distance = f1.has_enough_distance(&f2);
+        assert!(has_enough_distance);
+        println!("f1.low = {}, f2.high = {}", f1.low(), f2.high());
+        assert!(f1.low() > f2.high());
+        let is_pen = _is_pen(&f1, &f2);
+        assert!(is_pen);
+    }
     #[test]
     fn test_pen() {
         let fractals = load_fractal();
         println!("total fractals:{}", fractals.len());
+
+        let mut fq = FractalQueue::new();
+
+        for f in fractals {
+            fq.on_new_fractal(f.clone());
+        }
     }
 
     fn load_fractal() -> Vec<Fractal> {
