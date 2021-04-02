@@ -123,5 +123,6 @@ pub fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
     if f1_contain_f2 {
         return false;
     }
+
     true
 }
