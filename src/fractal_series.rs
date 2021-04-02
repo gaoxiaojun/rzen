@@ -271,3 +271,50 @@ impl FractalQueue {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::bar::Bar;
+    use crate::candle_series::CandleQueue;
+    use crate::fractal::Fractal;
+    use crate::time::Time;
+    use csv;
+    #[test]
+    fn test_pen() {
+        let fractals = load_fractal();
+        println!("total fractals:{}", fractals.len());
+    }
+
+    fn load_fractal() -> Vec<Fractal> {
+        let mut fractals: Vec<Fractal> = Vec::new();
+        let bars = load_bar();
+        let mut cq = CandleQueue::new();
+        for bar in bars {
+            if let Some(f) = cq.on_new_bar(&bar) {
+                fractals.push(f);
+            }
+        }
+        fractals
+    }
+
+    fn load_bar() -> Vec<Bar> {
+        let mut bars: Vec<Bar> = Vec::new();
+        let csv = include_str!("eurusd_10000.csv");
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(csv.as_bytes());
+
+        for record in reader.records() {
+            let record = record.unwrap();
+            let time: Time = AsRef::<str>::as_ref(&record[0]).parse::<i64>().unwrap();
+            let open = AsRef::<str>::as_ref(&record[1]).parse::<f64>().unwrap();
+            let high = AsRef::<str>::as_ref(&record[2]).parse::<f64>().unwrap();
+            let low = AsRef::<str>::as_ref(&record[3]).parse::<f64>().unwrap();
+            let close = AsRef::<str>::as_ref(&record[4]).parse::<f64>().unwrap();
+            let bar = Bar::new(time, open, high, low, close);
+            bars.push(bar);
+        }
+        assert!(bars.len() == 10000);
+        bars
+    }
+}
