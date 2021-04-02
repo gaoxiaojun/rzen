@@ -299,7 +299,7 @@ mod tests {
 
     fn load_bar() -> Vec<Bar> {
         let mut bars: Vec<Bar> = Vec::new();
-        let csv = include_str!("eurusd_10000.csv");
+        let csv = include_str!("../tests/eurusd_10000.csv");
         let mut reader = csv::ReaderBuilder::new()
             .has_headers(false)
             .from_reader(csv.as_bytes());
