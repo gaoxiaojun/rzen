@@ -24,3 +24,17 @@ impl Candle {
         }
     }
 }
+
+#[cfg(test)]
+
+mod tests {
+    use super::*;
+    #[test]
+    fn test_candle() {
+        let bar = Bar::new(1052692740000, 1.15166, 1.15176, 1.15156, 1.15176);
+        let c = Candle::from_bar(&bar);
+        assert!(c.time == bar.time);
+        assert!(c.high == bar.high);
+        assert!(c.low == bar.low);
+    }
+}
