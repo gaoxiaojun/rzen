@@ -1,13 +1,7 @@
 use crate::fractal::Fractal;
-use crate::fractal_util::{MergeAction, _is_pen, _merge_same_type};
+use crate::fractal_util::{MergeAction, _is_pen, _is_valid_fractal, _merge_same_type};
 use crate::pen::Pen;
 use crate::ringbuffer::RingBuffer;
-
-// 考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
-pub struct FractalQueue {
-    window: RingBuffer<Fractal>,
-    current_pen: Option<Pen>,
-}
 
 // 一、寻找第一笔
 // state 0
@@ -67,6 +61,12 @@ pub struct FractalQueue {
 // 4.2 CD不同类-----去掉C，按同类合并规则处理BD
 // 4.2.1 如果保留B,转state3
 // 4.2.2 如果保留D，更新笔端点，转state3
+
+// TODO:考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
+pub struct FractalQueue {
+    window: RingBuffer<Fractal>,
+    current_pen: Option<Pen>,
+}
 
 impl FractalQueue {
     pub fn new() -> Self {
@@ -248,6 +248,14 @@ impl FractalQueue {
     }
 
     pub fn on_new_fractal(&mut self, f: Fractal) {
+        // step1: valid fractal
+        if let Some(last) = self.window.get(-1) {
+            if !_is_valid_fractal(last, &f) {
+                return;
+            }
+        }
+
+        // step2: process fractal
         let len = self.window.len();
         let is_some = self.current_pen.is_some();
 

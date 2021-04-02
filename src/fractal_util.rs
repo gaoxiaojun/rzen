@@ -1,5 +1,6 @@
 use crate::fractal::{Fractal, FractalType};
 
+/*
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum FractalSharedKAction {
     Prev,
@@ -10,7 +11,7 @@ pub enum FractalSharedKAction {
 // 处理前后分型共用K的情况
 // 规则一：如果两个分型类型不同，前分型为有效分型，后分型无效
 // 规则二：如果两个分型类型相同，以高低点决定那个分型有效，如果高低点相同，两个分型都保留
-fn _share_k_fractal_is_valid(f1: &Fractal, f2: &Fractal) -> FractalSharedKAction {
+pub fn _share_k_fractal_is_valid(f1: &Fractal, f2: &Fractal) -> FractalSharedKAction {
     if f1.fractal_type() != f2.fractal_type() {
         return FractalSharedKAction::Prev;
     }
@@ -65,12 +66,14 @@ fn _fractal_contain_is_valid(f1: &Fractal, f2: &Fractal) -> FractalContainAction
 
     FractalContainAction::None
 }
+*/
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MergeAction {
     Keep,
     Replace,
 }
+
 pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
     debug_assert!(f1.fractal_type() == f2.fractal_type());
     if f1.fractal_type() == FractalType::Top {
@@ -106,4 +109,19 @@ pub fn _is_pen(f1: &Fractal, f2: &Fractal) -> bool {
     }
 
     false
+}
+
+pub fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
+    // 1.1 共享K线分析，后分型无效
+    if f1.distance(f2) < 3 && !f1.is_same_type(f2) {
+        // 共享K线分型，
+        return false;
+    }
+
+    // 1.2 包含关系分析，无效
+    let f1_contain_f2 = f1.high() >= f2.high() && f1.low() <= f2.low();
+    if f1_contain_f2 {
+        return false;
+    }
+    true
 }
