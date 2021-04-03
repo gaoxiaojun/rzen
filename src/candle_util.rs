@@ -2,6 +2,12 @@ use crate::bar::Bar;
 use crate::candle::Candle;
 use crate::fractal::{Fractal, FractalType};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    Up,
+    Down,
+}
+
 #[derive(Debug, Clone)]
 pub(crate) struct CandleWithIndex {
     // index的作用是为了计算Candle之间的距离，严格笔要求分型之间有5根K，通过index2 - index1就很容易检测是否满足条件，而无需保存整个Candle序列
@@ -16,12 +22,6 @@ impl CandleWithIndex {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Direction {
-    Up,
-    Down,
-}
-
 //  ------k2---------
 //  ------|----------
 //  -k1-|---|-k3-----
@@ -33,6 +33,7 @@ pub(crate) fn _check_fractal(
     k2: &CandleWithIndex,
     k3: &CandleWithIndex,
 ) -> Option<Fractal> {
+    debug_assert!(k1.index != k2.index && k1.index != k3.index && k2.index != k3.index);
     if (k1.candle.high < k2.candle.high) && (k2.candle.high > k3.candle.high) {
         debug_assert!(
             k1.candle.low <= k2.candle.low && k2.candle.low >= k3.candle.low,
@@ -66,6 +67,7 @@ pub(crate) fn _check_fractal(
 
 // 检测包含方向
 pub(crate) fn _check_direction(k1: &CandleWithIndex, k2: &CandleWithIndex) -> Direction {
+    debug_assert!(k1.index != k2.index);
     if k1.candle.high > k2.candle.high {
         Direction::Down
     } else {
@@ -126,6 +128,21 @@ pub(crate) fn _check_contain(
 mod tests {
     use super::*;
     #[test]
+    fn test_contain_relationship() {
+        let bar = Bar::new(10002, 100.0, 110.0, 95.0, 99.0);
+        let k1 = Candle::new(10000, 100.0, 50.0);
+        let k2 = Candle::new(10001, 120.0, 90.0);
+        let c1 = CandleWithIndex::new(10, k1);
+        let mut c2 = CandleWithIndex::new(11, k2);
+        let direction = _check_direction(&c1, &c2);
+        let is_contained = _check_contain(direction, &mut c2, &bar);
+        assert_eq!(is_contained, true);
+        assert_eq!(direction, Direction::Up);
+        assert_eq!(c2.candle.high, 120.0);
+        assert_eq!(c2.candle.low, 95.0);
+    }
+
+    #[test]
     fn test_candle_util() {
         let k1 = Candle::new(1052779380000, 1.15642, 1.15627);
         let k2 = Candle::new(1052779380000, 1.15645, 1.15634);
@@ -147,12 +164,12 @@ mod tests {
         let f1 = _check_fractal(&c1, &c2, &c3);
         assert!(f1.is_some());
         assert!(f1.as_ref().unwrap().fractal_type() == FractalType::Top);
-        assert!(f1.as_ref().unwrap().high() == 1.15645);
+        assert!(f1.as_ref().unwrap().highest() == 1.15645);
 
         let f2 = _check_fractal(&c4, &c5, &c6);
         assert!(f2.is_some());
         assert!(f2.as_ref().unwrap().fractal_type() == FractalType::Bottom);
-        assert!(f2.as_ref().unwrap().low() == 1.15576);
+        assert!(f2.as_ref().unwrap().lowest() == 1.15576);
 
         let b1 = Bar::new(1052692740000, 1.15166, 1.15176, 1.15156, 1.15176);
 
@@ -165,5 +182,7 @@ mod tests {
         let b2 = Bar::new(1052692740000, 1.15636, 1.15639, 1.15635, 1.15638);
         let is_contain = _check_contain(Direction::Up, &mut con, &b2);
         assert!(is_contain);
+        assert!(con.candle.high == 1.15642);
+        assert!(con.candle.low == 1.15635);
     }
 }

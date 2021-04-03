@@ -108,19 +108,31 @@ impl CandleQueue {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::candle_util::Direction;
     #[test]
-    fn test_contain_relationship() {
-        let bar = Bar::new(10002, 100.0, 110.0, 95.0, 99.0);
-        let k1 = Candle::new(10000, 100.0, 50.0);
-        let k2 = Candle::new(10001, 120.0, 90.0);
-        let c1 = CandleWithIndex::new(10, k1);
-        let mut c2 = CandleWithIndex::new(11, k2);
-        let direction = _check_direction(&c1, &c2);
-        let is_contained = _check_contain(direction, &mut c2, &bar);
-        assert_eq!(is_contained, true);
-        assert_eq!(direction, Direction::Up);
-        assert_eq!(c2.candle.high, 120.0);
-        assert_eq!(c2.candle.low, 95.0);
+    fn test_cq() {
+        let b1 = Bar::new(1, 6.0, 8.0, 6.0, 8.0);
+        let b2 = Bar::new(2, 9.0, 9.0, 7.0, 7.0);
+        let b3 = Bar::new(3, 7.0, 7.0, 6.0, 6.0);
+        let b4 = Bar::new(4, 6.0, 9.0, 6.0, 9.0);
+        let b5 = Bar::new(5, 8.0, 11.0, 8.0, 11.0);
+
+        let mut cq = CandleQueue::new();
+        let f1 = cq.on_new_bar(&b1);
+        let f2 = cq.on_new_bar(&b2);
+        let f3 = cq.on_new_bar(&b3);
+        let f4 = cq.on_new_bar(&b4);
+        let f5 = cq.on_new_bar(&b5);
+        assert!(f1.is_none());
+        assert!(f2.is_none());
+        assert!(f3.is_none());
+        assert!(f4.is_none());
+        assert!(f5.is_some());
+        let f = f5.unwrap();
+        let k1 = f.get_k1();
+        let k2 = f.get_k2();
+        let k3 = f.get_k3();
+        assert!(k1.high == 8.0 && k1.low == 6.0);
+        assert!(k2.high == 9.0 && k2.low == 7.0);
+        assert!(k3.high == 7.0 && k3.low == 6.0);
     }
 }

@@ -22,7 +22,7 @@ use crate::ringbuffer::RingBuffer;
 // state 2
 // +---2---+                        +---3---+           +--2-3--+       +-1-+
 // | A | B |<-----C         =====>  | B | C |     or    | A |B/C|   or  |A/C|
-// +---+---+                        +---+---+           +---+---+       +---+
+// +---+---+                        +--2.1--+           +---+---+       +---+
 // 前提：AB不成笔
 // 2.1 BC成笔 ---- 去掉A，保留BC，新建笔变量，转state3
 // 2.2 BC不成笔
@@ -32,7 +32,7 @@ use crate::ringbuffer::RingBuffer;
 // 2.2.1.1.2如果不成笔，转state 2
 // 2.2.1.2 如果保留B，抛弃C，转state2
 // 2.2.2 BC不同类，按同类合并规则处理AC
-// 2.2.2.1 如果保留A，则抛弃C
+// 2.2.2.1 如果保留A，则保留B，抛弃C，转state2
 // 2.2.2.2 如果保留C，抛弃AB，转state1
 
 // 二、已经有笔
@@ -62,6 +62,12 @@ use crate::ringbuffer::RingBuffer;
 // 4.2.1 如果保留B,转state3
 // 4.2.2 如果保留D，更新笔端点，转state3
 
+pub enum PenEvent {
+    CompleteAndNew(Pen, Pen),
+    New(Pen),
+    UpdateTo(Pen),
+}
+
 // TODO:考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
 pub struct FractalQueue {
     window: RingBuffer<Fractal>,
@@ -80,10 +86,6 @@ impl FractalQueue {
         debug_assert!(self.window.len() == 3);
         let pen = self.current_pen.as_mut().unwrap();
         pen.commit();
-        self.bc_new_pen_and_pop_a();
-    }
-
-    fn bc_new_pen_and_pop_a(&mut self) {
         self.window.pop_front();
         self.ab_new_pen();
     }
@@ -92,6 +94,7 @@ impl FractalQueue {
         debug_assert!(self.window.len() == 2);
         let from = self.window.get(0).unwrap();
         let to = self.window.get(1).unwrap();
+        debug_assert!(_is_pen(from, to));
         let pen = Pen::new(from.clone(), to.clone());
         self.current_pen = Some(pen);
     }
@@ -126,7 +129,7 @@ impl FractalQueue {
     fn state1(&mut self, f: Fractal) {
         debug_assert!(self.window.len() == 1 && self.current_pen.is_none());
         let last = self.window.get(-1).unwrap();
-        if last.fractal_type() == f.fractal_type() {
+        if last.is_same_type(&f) {
             // 1.1
             let action = _merge_same_type(last, &f);
             if action == MergeAction::Replace {
@@ -144,14 +147,17 @@ impl FractalQueue {
     }
 
     fn state2(&mut self, f: Fractal) {
-        debug_assert!(!self.ab_is_pen() && self.current_pen.is_none() && self.window.len() == 2);
+        debug_assert!(!self.ab_is_pen());
+        debug_assert!(self.current_pen.is_none());
+        debug_assert!(self.window.len() == 2);
 
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = _is_pen(b, &f);
         if bc_is_pen {
             // 2.1
             self.window.push(f);
-            self.bc_new_pen_and_pop_a();
+            self.window.pop_front();
+            self.ab_new_pen();
         } else {
             // 2.2
             if b.is_same_type(&f) {
@@ -169,7 +175,7 @@ impl FractalQueue {
                 }
             } else {
                 // 2.2.2
-                let a = self.window.get(-2).unwrap();
+                let a = self.window.get(0).unwrap();
                 let action = _merge_same_type(a, &f);
                 if action == MergeAction::Replace {
                     // 2.2.2.2
@@ -186,12 +192,16 @@ impl FractalQueue {
         debug_assert!(self.window.len() == 2);
 
         if !self.ab_is_pen() {
-            println!(
-                "{:?} \n {:?}",
-                self.window.get(0).unwrap(),
-                self.window.get(1).unwrap()
-            );
+            println!("a :{:?} \n b: {:?}", self.window.get(0), self.window.get(1));
+
+            // for debug
+            if let Some(p) = self.current_pen.as_ref() {
+                let from = p.from();
+                let to = p.to();
+                println!("from: {:?} \n to:{:?}", from, to);
+            }
         }
+
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = _is_pen(b, &f);
         if bc_is_pen {
@@ -215,7 +225,7 @@ impl FractalQueue {
     }
 
     fn state4(&mut self, f: Fractal) {
-        debug_assert!({
+        /*debug_assert!({
             let ab_is_pen = self.ab_is_pen();
             let bc_is_same_type = self
                 .window
@@ -228,7 +238,20 @@ impl FractalQueue {
                 && !bc_is_pen
                 && self.current_pen.is_some()
                 && self.window.len() == 3
-        });
+        });*/
+
+        debug_assert!(self.ab_is_pen());
+        debug_assert!(!self
+            .window
+            .get(-2)
+            .unwrap()
+            .is_same_type(self.window.get(-1).unwrap()));
+        debug_assert!(!_is_pen(
+            self.window.get(-2).unwrap(),
+            self.window.get(-1).unwrap()
+        ));
+        debug_assert!(self.current_pen.is_some());
+        debug_assert!(self.window.len() == 3);
 
         let c = self.window.get(-1).unwrap();
         if c.is_same_type(&f) {
@@ -267,9 +290,11 @@ impl FractalQueue {
 
         // step2: process fractal
         let len = self.window.len();
-        let is_some = self.current_pen.is_some();
+        let is_pen = self.window.len() >= 2 && self.ab_is_pen();
+        //debug_assert!(is_pen && !self.current_pen.is_some());
+        //debug_assert!(!is_pen && self.current_pen.is_some());
 
-        match (is_some, len) {
+        match (is_pen, len) {
             (false, 0) => self.state0(f),
             (false, 1) => self.state1(f),
             (false, 2) => self.state2(f),
@@ -277,6 +302,24 @@ impl FractalQueue {
             (true, 3) => self.state4(f),
             (_, _) => {
                 unreachable!()
+            }
+        }
+
+        let new_is_pen = self.window.len() >= 2 && self.ab_is_pen();
+        if (new_is_pen && !self.current_pen.is_some())
+            || (!new_is_pen && self.current_pen.is_some())
+        {
+            println!(
+                "len: {} is_pen: {}, is_some: {}\na: {:?}\n b: {:?}",
+                self.window.len(),
+                new_is_pen,
+                self.current_pen.is_some(),
+                self.window.get(0),
+                self.window.get(1)
+            );
+
+            if self.current_pen.is_some() {
+                println!("curren_pen: {:?}", self.current_pen);
             }
         }
     }
@@ -311,7 +354,7 @@ mod tests {
         assert!(is_pen);
     }
     #[test]
-    fn test_pen() {
+    fn test_pen_detector() {
         let fractals = load_fractal();
         println!("total fractals:{}", fractals.len());
 

@@ -11,8 +11,6 @@ pub enum FractalType {
 pub struct Fractal {
     ftype: FractalType,
     index: u64,
-    //high: f64,
-    //low: f64,
     k1: Candle,
     k2: Candle,
     k3: Candle,
@@ -38,6 +36,18 @@ impl Fractal {
             k2,
             k3,
         }
+    }
+
+    pub fn get_k1(&self) -> &Candle {
+        &self.k1
+    }
+
+    pub fn get_k2(&self) -> &Candle {
+        &self.k2
+    }
+
+    pub fn get_k3(&self) -> &Candle {
+        &self.k3
     }
 
     pub(crate) fn distance(&self, other: &Fractal) -> u64 {
@@ -66,26 +76,34 @@ impl Fractal {
         //}
     }
 
-    pub fn high(&self) -> f64 {
+    pub fn highest(&self) -> f64 {
         //self.high
         f64::max(f64::max(self.k1.high, self.k2.high), self.k3.high)
     }
 
-    pub fn low(&self) -> f64 {
+    pub fn lowest(&self) -> f64 {
         //self.low
         f64::min(f64::min(self.k1.low, self.k2.low), self.k3.low)
+    }
+
+    pub fn high(&self) -> f64 {
+        self.highest()
+    }
+
+    pub fn low(&self) -> f64 {
+        self.lowest()
     }
 
     pub fn has_same_price(&self, other: &Fractal) -> bool {
         debug_assert!(self.ftype == other.ftype);
         if self.ftype == FractalType::Top {
-            if self.high() == other.high() {
+            if self.k2.high == other.k2.high {
                 true
             } else {
                 false
             }
         } else {
-            if self.low() == other.low() {
+            if self.k2.low == other.k2.low {
                 true
             } else {
                 false

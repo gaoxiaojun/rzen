@@ -1,4 +1,5 @@
 use crate::fractal::{Fractal, FractalType};
+use crate::fractal_util::_is_pen;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PenType {
@@ -39,12 +40,21 @@ impl Pen {
     }
 
     pub fn update_to(&mut self, to: Fractal) {
+        debug_assert!(_is_pen(self.from(), &to));
         self.to = to;
         self.status = PenStatus::Continue;
     }
 
     pub fn commit(&mut self) {
         self.status = PenStatus::Complete;
+    }
+
+    pub fn from(&self) -> &Fractal {
+        &self.from
+    }
+
+    pub fn to(&self) -> &Fractal {
+        &self.to
     }
 }
 

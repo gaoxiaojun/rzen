@@ -77,13 +77,13 @@ pub enum MergeAction {
 pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
     debug_assert!(f1.fractal_type() == f2.fractal_type());
     if f1.fractal_type() == FractalType::Top {
-        if f1.high() > f2.high() {
+        if f1.highest() > f2.highest() {
             MergeAction::Keep
         } else {
             MergeAction::Replace
         }
     } else {
-        if f1.low() < f2.low() {
+        if f1.lowest() < f2.lowest() {
             MergeAction::Keep
         } else {
             MergeAction::Replace
