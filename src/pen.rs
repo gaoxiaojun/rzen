@@ -40,6 +40,12 @@ impl Pen {
     }
 
     pub fn update_to(&mut self, to: Fractal) {
+        if !_is_pen(&self.from, &to) {
+            println!(
+                "from: {:?}, \nold_to: {:?}\n new_to: {:?}",
+                self.from, self.to, to
+            );
+        }
         debug_assert!(_is_pen(self.from(), &to));
         self.to = to;
         self.status = PenStatus::Continue;

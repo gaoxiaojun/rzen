@@ -119,6 +119,7 @@ impl FractalQueue {
         debug_assert!(self.window.len() == 2);
         let new_to = self.window.get(1).unwrap();
         self.current_pen.as_mut().unwrap().update_to(new_to.clone());
+        debug_assert!(self.ab_is_pen());
     }
 
     fn state0(&mut self, f: Fractal) {
@@ -330,7 +331,7 @@ mod tests {
     use crate::bar::Bar;
     use crate::candle::Candle;
     use crate::candle_series::CandleQueue;
-    use crate::fractal::{Fractal, FractalType};
+    use crate::fractal::Fractal;
     use crate::fractal_series::FractalQueue;
     use crate::fractal_util::_is_pen;
     use crate::time::Time;
@@ -341,11 +342,11 @@ mod tests {
         let k1 = Candle::new(1052779380000, 1.15642, 1.15627);
         let k2 = Candle::new(1052779380000, 1.15645, 1.15634);
         let k3 = Candle::new(1052779500000, 1.15638, 1.1562);
-        let f1 = Fractal::new(FractalType::Top, 1118, k1, k2, k3);
+        let f1 = Fractal::new(1118, k1, k2, k3);
         let k4 = Candle::new(1052780640000, 1.15604, 1.1559);
         let k5 = Candle::new(1052780820000, 1.15602, 1.15576);
         let k6 = Candle::new(1052780940000, 1.15624, 1.15599);
-        let f2 = Fractal::new(FractalType::Bottom, 1132, k4, k5, k6);
+        let f2 = Fractal::new(1132, k4, k5, k6);
         let has_enough_distance = f1.has_enough_distance(&f2);
         assert!(has_enough_distance);
         println!("f1.low = {}, f2.high = {}", f1.low(), f2.high());

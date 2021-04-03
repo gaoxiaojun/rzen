@@ -9,11 +9,12 @@ pub enum FractalType {
 // 分型
 #[derive(Debug, Clone)]
 pub struct Fractal {
-    ftype: FractalType,
     index: u64,
     k1: Candle,
     k2: Candle,
     k3: Candle,
+    // cache
+    ftype: FractalType,
 }
 
 // 计算分型之间K线的数量,K线是经过包含处理过的
@@ -26,15 +27,26 @@ fn distance(lhs: &Fractal, rhs: &Fractal) -> u64 {
 }
 
 impl Fractal {
-    pub fn new(ftype: FractalType, index: u64, k1: Candle, k2: Candle, k3: Candle) -> Self {
+    pub fn new(index: u64, k1: Candle, k2: Candle, k3: Candle) -> Self {
+        debug_assert!(
+            // 合并之后，分型的最高/最低是唯一的，所以没有等号
+            ((k1.high < k2.high) && (k2.high > k3.high)) // Top
+                || ((k1.low > k2.low) && (k2.low < k3.low)) // Bottom
+        );
+
+        let is_top = (k1.high < k2.high) && (k2.high > k3.high);
+        let ftype = if is_top {
+            FractalType::Top
+        } else {
+            FractalType::Bottom
+        };
+
         Self {
-            ftype,
             index,
-            //high: f64::max(f64::max(k1.high, k2.high), k3.high),
-            //low: f64::min(f64::min(k1.low, k2.low), k3.low),
             k1,
             k2,
             k3,
+            ftype,
         }
     }
 
@@ -68,53 +80,49 @@ impl Fractal {
 
     pub fn fractal_type(&self) -> FractalType {
         self.ftype
-
-        //if (self.k1.high < self.k2.high) && (self.k2.high > self.k3.high) {
-        //    FractalType::Top
-        //} else {
-        //    FractalType::Bottom
-        //}
     }
 
-    pub fn highest(&self) -> f64 {
-        //self.high
-        f64::max(f64::max(self.k1.high, self.k2.high), self.k3.high)
-    }
-
-    pub fn lowest(&self) -> f64 {
-        //self.low
-        f64::min(f64::min(self.k1.low, self.k2.low), self.k3.low)
-    }
-
-    pub fn high(&self) -> f64 {
-        self.highest()
-    }
-
-    pub fn low(&self) -> f64 {
-        self.lowest()
-    }
-
-    pub fn has_same_price(&self, other: &Fractal) -> bool {
-        debug_assert!(self.ftype == other.ftype);
+    // 分型区间概念
+    // 顶分型是[k1,k3最低点, k2.high]
+    // 底分型是[k2.low, k1,k3最高点]
+    pub fn range(&self) -> (f64, f64) {
         if self.ftype == FractalType::Top {
-            if self.k2.high == other.k2.high {
-                true
-            } else {
-                false
-            }
+            (f64::min(self.k1.low, self.k3.low), self.k2.high)
         } else {
-            if self.k2.low == other.k2.low {
-                true
-            } else {
-                false
-            }
+            (self.k2.low, f64::max(self.k1.high, self.k3.high))
+        }
+    }
+
+    // 分型高点概念
+    // 顶分型 -> 最高点
+    // 底分型 -> 分型第二元素的高点
+    pub fn high(&self) -> f64 {
+        if self.ftype == FractalType::Top {
+            self.k2.high
+        } else {
+            self.k3.high
+        }
+    }
+
+    // 分型低点概念
+    // 顶分型 -> 最低点
+    // 底分型 -> 分型第二元素的低点
+    pub fn low(&self) -> f64 {
+        if self.ftype == FractalType::Bottom {
+            self.k2.low
+        } else {
+            self.k3.low
         }
     }
 
     pub fn is_contain(&self, other: &Fractal) -> bool {
-        if (self.high() >= other.high() && self.low() <= other.low())
-            || (other.high() >= self.high() && other.low() <= self.low())
-        {
+        let lhs_highest = f64::max(f64::max(self.k1.high, self.k2.high), self.k3.high);
+        let lhs_lowest = f64::min(f64::min(self.k1.low, self.k2.low), self.k3.low);
+
+        let rhs_highest = f64::max(f64::max(other.k1.high, other.k2.high), other.k3.high);
+        let rhs_lowest = f64::min(f64::min(other.k1.low, other.k2.low), other.k3.low);
+
+        if lhs_highest >= rhs_highest && lhs_lowest <= rhs_lowest {
             true
         } else {
             false
@@ -130,18 +138,18 @@ impl PartialEq for Fractal {
 
 #[cfg(test)]
 mod tests {
-    use crate::{candle::Candle, fractal::Fractal, fractal::FractalType};
+    use crate::{candle::Candle, fractal::Fractal};
     #[test]
     fn test_distance_and_eq() {
-        let k1 = Candle::new(2000000, 100.0, 50.0);
+        let k1 = Candle::new(2000000, 100.0, 30.0);
         let k2 = Candle::new(2000001, 150.0, 120.0);
         let k3 = Candle::new(2000002, 130.0, 60.0);
 
         let k4 = Candle::new(3000000, 90.0, 60.0);
         let k5 = Candle::new(3000001, 70.0, 30.0);
         let k6 = Candle::new(3000002, 80.0, 50.0);
-        let f1 = Fractal::new(FractalType::Top, 10, k1, k2, k3);
-        let f2 = Fractal::new(FractalType::Bottom, 12, k4, k5, k6);
+        let f1 = Fractal::new(10, k1, k2, k3);
+        let f2 = Fractal::new(12, k4, k5, k6);
 
         let d1 = f1.distance(&f2);
         let d2 = f2.distance(&f1);
@@ -151,5 +159,8 @@ mod tests {
 
         // test eq
         assert_ne!(f1, f2);
+
+        // test is_contain
+        assert!(f1.is_contain(&f2));
     }
 }

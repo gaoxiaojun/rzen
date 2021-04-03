@@ -1,6 +1,6 @@
 use crate::bar::Bar;
 use crate::candle::Candle;
-use crate::fractal::{Fractal, FractalType};
+use crate::fractal::Fractal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -27,6 +27,7 @@ impl CandleWithIndex {
 //  -k1-|---|-k3-----
 //  ------|----------
 //  -----k2----------
+
 // 检查分型
 pub(crate) fn _check_fractal(
     k1: &CandleWithIndex,
@@ -34,34 +35,16 @@ pub(crate) fn _check_fractal(
     k3: &CandleWithIndex,
 ) -> Option<Fractal> {
     debug_assert!(k1.index != k2.index && k1.index != k3.index && k2.index != k3.index);
-    if (k1.candle.high < k2.candle.high) && (k2.candle.high > k3.candle.high) {
-        debug_assert!(
-            k1.candle.low <= k2.candle.low && k2.candle.low >= k3.candle.low,
-            "顶分型的底不是最高的"
-        );
+    if ((k1.candle.high < k2.candle.high) && (k2.candle.high > k3.candle.high))
+        || ((k1.candle.low > k2.candle.low) && (k2.candle.low < k3.candle.low))
+    {
         return Some(Fractal::new(
-            FractalType::Top,
             k2.index,
             k1.candle.clone(),
             k2.candle.clone(),
             k3.candle.clone(),
         ));
     }
-
-    if (k1.candle.low > k2.candle.low) && (k2.candle.low < k3.candle.low) {
-        debug_assert!(
-            (k1.candle.high >= k2.candle.high) && (k2.candle.high <= k3.candle.high),
-            "底分型的顶不是最低的"
-        );
-        return Some(Fractal::new(
-            FractalType::Bottom,
-            k2.index,
-            k1.candle.clone(),
-            k2.candle.clone(),
-            k3.candle.clone(),
-        ));
-    }
-
     None
 }
 
@@ -127,6 +110,7 @@ pub(crate) fn _check_contain(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::fractal::FractalType;
     #[test]
     fn test_contain_relationship() {
         let bar = Bar::new(10002, 100.0, 110.0, 95.0, 99.0);
@@ -164,12 +148,12 @@ mod tests {
         let f1 = _check_fractal(&c1, &c2, &c3);
         assert!(f1.is_some());
         assert!(f1.as_ref().unwrap().fractal_type() == FractalType::Top);
-        assert!(f1.as_ref().unwrap().highest() == 1.15645);
+        assert!(f1.as_ref().unwrap().high() == 1.15645);
 
         let f2 = _check_fractal(&c4, &c5, &c6);
         assert!(f2.is_some());
         assert!(f2.as_ref().unwrap().fractal_type() == FractalType::Bottom);
-        assert!(f2.as_ref().unwrap().lowest() == 1.15576);
+        assert!(f2.as_ref().unwrap().low() == 1.15576);
 
         let b1 = Bar::new(1052692740000, 1.15166, 1.15176, 1.15156, 1.15176);
 

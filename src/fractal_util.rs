@@ -74,16 +74,21 @@ pub enum MergeAction {
     Replace,
 }
 
+pub enum ValidAction {
+    Keep,
+    Replace,
+    None,
+}
 pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
     debug_assert!(f1.fractal_type() == f2.fractal_type());
     if f1.fractal_type() == FractalType::Top {
-        if f1.highest() > f2.highest() {
+        if f1.high() > f2.high() {
             MergeAction::Keep
         } else {
             MergeAction::Replace
         }
     } else {
-        if f1.lowest() < f2.lowest() {
+        if f1.low() < f2.low() {
             MergeAction::Keep
         } else {
             MergeAction::Replace
@@ -91,11 +96,44 @@ pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
     }
 }
 
+/*pub fn _valid(f1: &Fractal, f2: &Fractal) -> ValidAction {
+    debug_assert!(f1.fractal_type() != f2.fractal_type());
+    // case1: 前分型被包括在后分型中，前分型无效
+
+    // 后面的分型包含前面的分型，前面的分型无效
+    if f2.is_contain(f1) {
+        return ValidAction::Replace;
+    }
+
+    // 前面的分型包含后面的分型，后面的分型无效
+    if f1.is_contain(f2) {
+        return ValidAction::Keep;
+    }
+
+    // case2:前后高低比较，
+    // 1.1 前顶后底
+    // 1.1.1 前面的顶分型最高点低于后面的底分型高点，前分型失效
+    // 1.2 前底后顶
+    // 1.2.1 前面的的底分型最低点高于后面的顶分型低点，前分型失效
+
+    if f1.fractal_type() == FractalType::Top {
+        if f2.high() < f1.high() {
+            return ValidAction::Keep;
+        }
+    }
+
+    if f1.fractal_type() == FractalType::Bottom {
+        if f2.high() < f1.high() {
+            return ValidAction::Keep;
+        }
+    }
+}
+*/
 pub fn _is_pen(f1: &Fractal, f2: &Fractal) -> bool {
     if f1.fractal_type() == FractalType::Top
         && f2.fractal_type() == FractalType::Bottom
         && f1.has_enough_distance(f2)
-        && f1.low() > f2.high()
+        && f1.range().0 > f2.range().0
     {
         return true;
     }
@@ -103,7 +141,7 @@ pub fn _is_pen(f1: &Fractal, f2: &Fractal) -> bool {
     if f1.fractal_type() == FractalType::Bottom
         && f2.fractal_type() == FractalType::Top
         && f1.has_enough_distance(f2)
-        && f1.high() < f2.low()
+        && f1.range().1 < f2.range().1
     {
         return true;
     }
@@ -119,8 +157,7 @@ pub fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
     }
 
     // 1.2 包含关系分析，无效
-    let f1_contain_f2 = f1.high() >= f2.high() && f1.low() <= f2.low();
-    if f1_contain_f2 {
+    if f1.is_contain(f2) {
         return false;
     }
 
