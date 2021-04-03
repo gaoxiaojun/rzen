@@ -349,8 +349,13 @@ mod tests {
         let f2 = Fractal::new(1132, k4, k5, k6);
         let has_enough_distance = f1.has_enough_distance(&f2);
         assert!(has_enough_distance);
-        println!("f1.low = {}, f2.high = {}", f1.low(), f2.high());
-        assert!(f1.low() > f2.high());
+        println!(
+            "f1.type = {:?} f1.range = {:?}, f2.type = {:?}, f2.range = {:?}",
+            f1.fractal_type(),
+            f1.range(),
+            f2.fractal_type(),
+            f2.range()
+        );
         let is_pen = _is_pen(&f1, &f2);
         assert!(is_pen);
     }
