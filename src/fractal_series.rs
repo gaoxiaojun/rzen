@@ -188,7 +188,7 @@ impl FractalQueue {
     }
 
     fn state3(&mut self, f: Fractal) {
-        //debug_assert!(self.ab_is_pen());
+        debug_assert!(self.ab_is_pen());
         debug_assert!(self.current_pen.is_some());
         debug_assert!(self.window.len() == 2);
 
@@ -291,9 +291,8 @@ impl FractalQueue {
 
         // step2: process fractal
         let len = self.window.len();
-        let is_pen = self.window.len() >= 2 && self.ab_is_pen();
-        //debug_assert!(is_pen && !self.current_pen.is_some());
-        //debug_assert!(!is_pen && self.current_pen.is_some());
+        let is_pen = self.current_pen.is_some();
+        //let is_pen = self.window.len() >= 2 && self.ab_is_pen();
 
         match (is_pen, len) {
             (false, 0) => self.state0(f),
