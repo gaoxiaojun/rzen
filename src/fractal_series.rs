@@ -226,21 +226,6 @@ impl FractalQueue {
     }
 
     fn state4(&mut self, f: Fractal) {
-        /*debug_assert!({
-            let ab_is_pen = self.ab_is_pen();
-            let bc_is_same_type = self
-                .window
-                .get(-2)
-                .unwrap()
-                .is_same_type(self.window.get(-1).unwrap());
-            let bc_is_pen = _is_pen(self.window.get(-2).unwrap(), self.window.get(-1).unwrap());
-            ab_is_pen
-                && !bc_is_same_type
-                && !bc_is_pen
-                && self.current_pen.is_some()
-                && self.window.len() == 3
-        });*/
-
         debug_assert!(self.ab_is_pen());
         debug_assert!(!self
             .window
