@@ -133,7 +133,7 @@ pub fn _is_pen(f1: &Fractal, f2: &Fractal) -> bool {
     if f1.fractal_type() == FractalType::Top
         && f2.fractal_type() == FractalType::Bottom
         && f1.has_enough_distance(f2)
-        && f1.range().0 > f2.range().0
+        && f2.low() < f1.low()
     {
         return true;
     }
@@ -141,7 +141,7 @@ pub fn _is_pen(f1: &Fractal, f2: &Fractal) -> bool {
     if f1.fractal_type() == FractalType::Bottom
         && f2.fractal_type() == FractalType::Top
         && f1.has_enough_distance(f2)
-        && f1.range().1 < f2.range().1
+        && f2.high() > f1.high()
     {
         return true;
     }

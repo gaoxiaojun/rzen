@@ -42,9 +42,30 @@ impl Pen {
     pub fn update_to(&mut self, to: Fractal) {
         if !_is_pen(&self.from, &to) {
             println!(
-                "from: {:?}, \nold_to: {:?}\n new_to: {:?}",
-                self.from, self.to, to
+                "from: {:?}--{}--{:?}, \nold_to: {:?}--{}--{:?}\nnew_to: {:?}--{}--{:?}",
+                self.from.fractal_type(),
+                self.from.index(),
+                self.from.range(),
+                self.to.fractal_type(),
+                self.to.index(),
+                self.to.range(),
+                to.fractal_type(),
+                to.index(),
+                to.range()
             );
+            println!(
+                "{:?}\n{:?}\n{:?}",
+                self.from.get_k1(),
+                self.from.get_k2(),
+                self.from.get_k3()
+            );
+            println!(
+                "{:?}\n{:?}\n{:?}",
+                self.to.get_k1(),
+                self.to.get_k2(),
+                self.to.get_k3()
+            );
+            println!("{:?}\n{:?}\n{:?}", to.get_k1(), to.get_k2(), to.get_k3());
         }
         debug_assert!(_is_pen(self.from(), &to));
         self.to = to;

@@ -62,6 +62,10 @@ impl Fractal {
         &self.k3
     }
 
+    pub(crate) fn index(&self) -> u64 {
+        self.index
+    }
+
     pub(crate) fn distance(&self, other: &Fractal) -> u64 {
         distance(self, other)
     }
@@ -93,25 +97,21 @@ impl Fractal {
         }
     }
 
-    // 分型高点概念
-    // 顶分型 -> 最高点
-    // 底分型 -> 分型第二元素的高点
+    // 分型最高点
     pub fn high(&self) -> f64 {
         if self.ftype == FractalType::Top {
             self.k2.high
         } else {
-            self.k3.high
+            f64::max(self.k1.high, self.k3.high)
         }
     }
 
-    // 分型低点概念
-    // 顶分型 -> 最低点
-    // 底分型 -> 分型第二元素的低点
+    // 分型最低点
     pub fn low(&self) -> f64 {
         if self.ftype == FractalType::Bottom {
             self.k2.low
         } else {
-            self.k3.low
+            f64::min(self.k1.low, self.k3.low)
         }
     }
 
@@ -121,6 +121,11 @@ impl Fractal {
 
         let rhs_highest = f64::max(f64::max(other.k1.high, other.k2.high), other.k3.high);
         let rhs_lowest = f64::min(f64::min(other.k1.low, other.k2.low), other.k3.low);
+
+        debug_assert!(lhs_highest == self.high());
+        debug_assert!(lhs_lowest == self.low());
+        debug_assert!(rhs_highest == other.high());
+        debug_assert!(rhs_lowest == other.low());
 
         if lhs_highest >= rhs_highest && lhs_lowest <= rhs_lowest {
             true
