@@ -352,6 +352,8 @@ impl<'a> FractalQueue<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::mem::size_of;
+
     use super::*;
     use crate::bar::Bar;
     use crate::candle::Candle;
@@ -438,7 +440,11 @@ mod tests {
             let bar = Bar::new(time, open, high, low, close);
             bars.push(bar);
         }
-        println!("bar count={}", bars.len());
+        println!(
+            "bar count={} datetime size={}",
+            bars.len(),
+            size_of::<DateTime<Utc>>()
+        );
         bars
     }
 
