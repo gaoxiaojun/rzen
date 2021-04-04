@@ -1,6 +1,7 @@
 use crate::fractal::Fractal;
 use crate::fractal_util::{MergeAction, _is_pen, _is_valid_fractal, _merge_same_type};
 use crate::pen::Pen;
+use crate::pen_store::PenStore;
 use crate::ringbuffer::RingBuffer;
 
 // 一、寻找第一笔
@@ -62,30 +63,67 @@ use crate::ringbuffer::RingBuffer;
 // 4.2.1 如果保留B,转state3
 // 4.2.2 如果保留D，更新笔端点，转state3
 
-pub enum PenEvent {
-    CompleteAndNew(Pen, Pen),
-    New(Pen),
-    UpdateTo(Pen),
+#[derive(Debug, Clone, Copy)]
+pub enum PenEvent<'a> {
+    Complete(&'a Pen),
+    New(&'a Pen),
+    UpdateTo(&'a Pen, &'a Fractal),
 }
 
 // TODO:考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
-pub struct FractalQueue {
+pub struct FractalQueue<'a> {
     window: RingBuffer<Fractal>,
     current_pen: Option<Pen>,
+    store: Option<&'a PenStore>,
 }
 
-impl FractalQueue {
+impl<'a> FractalQueue<'a> {
     pub fn new() -> Self {
         Self {
             window: RingBuffer::new(3),
             current_pen: None,
+            store: None,
         }
+    }
+
+    pub fn set_store(&mut self, store: &'a PenStore) {
+        self.store = Some(store);
+    }
+
+    fn emit(&self, event: PenEvent) {
+        if let Some(store) = self.store {
+            store.on_event(event);
+        }
+    }
+
+    fn emit_pen_complete_event(&self, pen: &Pen) {
+        self.emit(PenEvent::Complete(pen));
+    }
+
+    fn emit_pen_new_event(&self, pen: &Pen) {
+        self.emit(PenEvent::New(pen));
+    }
+
+    fn emit_pen_update_event(&self, pen: &Pen, f: &Fractal) {
+        self.emit(PenEvent::UpdateTo(pen, f));
+    }
+
+    fn pen_new(&self, from: &Fractal, to: &Fractal) -> Pen {
+        let pen = Pen::new(from.clone(), to.clone());
+        self.emit_pen_new_event(&pen);
+        pen
+    }
+
+    fn pen_complete(&self, pen: &Pen) {
+        self.emit_pen_complete_event(pen);
     }
 
     fn ab_pen_complete_bc_pen_new(&mut self) {
         debug_assert!(self.window.len() == 3);
         let pen = self.current_pen.as_mut().unwrap();
         pen.commit();
+        let pen = self.current_pen.as_ref().unwrap();
+        self.pen_complete(pen);
         self.window.pop_front();
         self.ab_new_pen();
     }
@@ -95,7 +133,7 @@ impl FractalQueue {
         let from = self.window.get(0).unwrap();
         let to = self.window.get(1).unwrap();
         debug_assert!(_is_pen(from, to));
-        let pen = Pen::new(from.clone(), to.clone());
+        let pen = self.pen_new(from, to);
         self.current_pen = Some(pen);
     }
 
@@ -120,6 +158,8 @@ impl FractalQueue {
         let new_to = self.window.get(1).unwrap();
         self.current_pen.as_mut().unwrap().update_to(new_to.clone());
         debug_assert!(self.ab_is_pen());
+        let pen = self.current_pen.as_ref().unwrap();
+        self.emit_pen_update_event(pen, &new_to);
     }
 
     fn state0(&mut self, f: Fractal) {
@@ -312,13 +352,17 @@ impl FractalQueue {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::bar::Bar;
     use crate::candle::Candle;
     use crate::candle_series::CandleQueue;
     use crate::fractal::Fractal;
     use crate::fractal_series::FractalQueue;
     use crate::fractal_util::_is_pen;
+    use crate::pen_store::PenStore;
+    use crate::plot::draw_bar;
     use crate::time::Time;
+    use chrono::prelude::*;
     use csv;
 
     #[test]
@@ -343,30 +387,62 @@ mod tests {
         let is_pen = _is_pen(&f1, &f2);
         assert!(is_pen);
     }
+
     #[test]
     fn test_pen_detector() {
-        let fractals = load_fractal();
+        let store = PenStore::new();
+        let (bars, fractals) = load_fractal();
         println!("total fractals:{}", fractals.len());
 
         let mut fq = FractalQueue::new();
+        fq.set_store(&store);
 
         for f in fractals {
             fq.on_new_fractal(f.clone());
         }
+
+        println!("Pen Count = {}", store.count());
+        draw_bar(&bars);
     }
 
-    fn load_fractal() -> Vec<Fractal> {
+    fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {
         let mut fractals: Vec<Fractal> = Vec::new();
-        let bars = load_bar();
+        let bars = load_bar2();
         let mut cq = CandleQueue::new();
-        for bar in bars {
-            if let Some(f) = cq.on_new_bar(&bar) {
+        for bar in &bars {
+            if let Some(f) = cq.on_new_bar(bar) {
                 fractals.push(f);
             }
         }
-        fractals
+        (bars, fractals)
     }
 
+    #[allow(dead_code)]
+    fn load_bar2() -> Vec<Bar> {
+        let mut bars: Vec<Bar> = Vec::new();
+        let csv = include_str!("../tests/EURUSD-2010_09_01-2010_09_31.csv");
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(false)
+            .from_reader(csv.as_bytes());
+
+        for record in reader.records() {
+            let record = record.unwrap();
+            let timestr: &str = AsRef::<str>::as_ref(&record[0]);
+            let dt = NaiveDateTime::parse_from_str(timestr, "%Y-%m-%d %H:%M:%S").unwrap();
+            let datetime: DateTime<Utc> = DateTime::from_utc(dt, Utc);
+            let time = datetime.timestamp_millis();
+            let open = AsRef::<str>::as_ref(&record[1]).parse::<f64>().unwrap();
+            let high = AsRef::<str>::as_ref(&record[2]).parse::<f64>().unwrap();
+            let low = AsRef::<str>::as_ref(&record[3]).parse::<f64>().unwrap();
+            let close = AsRef::<str>::as_ref(&record[4]).parse::<f64>().unwrap();
+            let bar = Bar::new(time, open, high, low, close);
+            bars.push(bar);
+        }
+        println!("bar count={}", bars.len());
+        bars
+    }
+
+    #[allow(dead_code)]
     fn load_bar() -> Vec<Bar> {
         let mut bars: Vec<Bar> = Vec::new();
         let csv = include_str!("../tests/eurusd_10000.csv");

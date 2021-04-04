@@ -5,7 +5,9 @@ name = "rzen"
 version = "0.1.0"
 
 [dependencies]
-
+chrono = "*"
+plotly = {version = "0.6.0", features = ["kaleido"]}
+serde = "*"
 
 [lib]
 crate-type = ["cdylib"]
