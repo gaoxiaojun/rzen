@@ -24,7 +24,7 @@ impl CandleWithIndex {
 // 检测包含方向
 pub(crate) fn _check_direction(k1: &CandleWithIndex, k2: &CandleWithIndex) -> Direction {
     debug_assert!(k1.index != k2.index);
-    if k1.candle.high > k2.candle.high {
+    if k1.candle.high + k1.candle.low > k2.candle.high + k2.candle.low {
         Direction::Down
     } else {
         Direction::Up
