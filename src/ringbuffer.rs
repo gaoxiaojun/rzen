@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+#[derive(Debug)]
 pub struct RingBuffer<T> {
     queue: VecDeque<T>,
 }

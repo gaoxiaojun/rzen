@@ -137,6 +137,7 @@ pub enum PenEvent {
 }
 
 // TODO:考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
+#[derive(Debug)]
 pub struct PenDetector {
     window: RingBuffer<Fractal>,
     has_pen: bool,

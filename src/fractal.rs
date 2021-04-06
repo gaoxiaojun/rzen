@@ -8,9 +8,9 @@ pub enum FractalType {
 // 分型
 #[derive(Debug, Clone)]
 pub struct Fractal {
-    k1: Candle,
-    k2: Candle,
-    k3: Candle,
+    pub(crate) k1: Candle,
+    pub(crate) k2: Candle,
+    pub(crate) k3: Candle,
     // cache
     ftype: FractalType,
 }
@@ -56,18 +56,6 @@ impl Fractal {
             return Some(Fractal::new(k1.clone(), k2.clone(), k3.clone()));
         }
         None
-    }
-
-    pub fn get_k1(&self) -> &Candle {
-        &self.k1
-    }
-
-    pub fn get_k2(&self) -> &Candle {
-        &self.k2
-    }
-
-    pub fn get_k3(&self) -> &Candle {
-        &self.k3
     }
 
     pub(crate) fn distance(&self, other: &Fractal) -> u64 {

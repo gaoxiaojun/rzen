@@ -3,6 +3,7 @@ use crate::candle::Candle;
 use crate::fractal::Fractal;
 use crate::ringbuffer::RingBuffer;
 
+#[derive(Debug)]
 pub struct FractalDetector {
     window: RingBuffer<Candle>,
     next_index: u64,
@@ -124,9 +125,9 @@ mod tests {
         assert!(f4.is_none());
         assert!(f5.is_some());
         let f = f5.unwrap();
-        let k1 = f.get_k1();
-        let k2 = f.get_k2();
-        let k3 = f.get_k3();
+        let k1 = f.k1;
+        let k2 = f.k2;
+        let k3 = f.k3;
         assert!(k1.high == 8.0 && k1.low == 6.0);
         assert!(k2.high == 9.0 && k2.low == 7.0);
         assert!(k3.high == 7.0 && k3.low == 6.0);

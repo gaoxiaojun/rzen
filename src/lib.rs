@@ -1,10 +1,10 @@
 pub mod analyzer;
 pub mod bar;
-pub mod candle;
+mod candle;
 pub mod fractal;
-pub mod fractal_detector;
-pub mod pen_detector;
+mod fractal_detector;
+mod pen_detector;
 pub mod pivot;
 pub mod plot;
-pub mod ringbuffer;
+mod ringbuffer;
 pub mod time;
