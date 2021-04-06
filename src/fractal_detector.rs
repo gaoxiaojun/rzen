@@ -28,7 +28,7 @@ impl FractalDetector {
         let k2 = self.window.get(-2).unwrap();
         let k3 = self.window.get(-1).unwrap();
 
-        _check_fractal(k1, k2, k3)
+        Fractal::check_fractal(k1, k2, k3)
     }
 
     // 处理与当前bar的包含关系
@@ -99,28 +99,13 @@ impl FractalDetector {
     }
 }
 
-//  ------k2---------
-//  ------|----------
-//  -k1-|---|-k3-----
-//  ------|----------
-//  -----k2----------
-
-// 检查分型
-pub(crate) fn _check_fractal(k1: &Candle, k2: &Candle, k3: &Candle) -> Option<Fractal> {
-    debug_assert!(k1.index != k2.index && k1.index != k3.index && k2.index != k3.index);
-    if ((k1.high < k2.high) && (k2.high > k3.high)) || ((k1.low > k2.low) && (k2.low < k3.low)) {
-        return Some(Fractal::new(k1.clone(), k2.clone(), k3.clone()));
-    }
-    None
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::candle::Direction;
     use crate::fractal::FractalType;
     #[test]
-    fn test_cq() {
+    fn test_detector() {
         let b1 = Bar::new(1, 6.0, 8.0, 6.0, 8.0);
         let b2 = Bar::new(2, 9.0, 9.0, 7.0, 7.0);
         let b3 = Bar::new(3, 7.0, 7.0, 6.0, 6.0);
@@ -159,12 +144,12 @@ mod tests {
         let direction = Candle::check_direction(&c1, &c2);
         assert!(direction == Direction::Up);
 
-        let f1 = _check_fractal(&c1, &c2, &c3);
+        let f1 = Fractal::check_fractal(&c1, &c2, &c3);
         assert!(f1.is_some());
         assert!(f1.as_ref().unwrap().fractal_type() == FractalType::Top);
         assert!(f1.as_ref().unwrap().highest() == 1.15645);
 
-        let f2 = _check_fractal(&c4, &c5, &c6);
+        let f2 = Fractal::check_fractal(&c4, &c5, &c6);
         assert!(f2.is_some());
         assert!(f2.as_ref().unwrap().fractal_type() == FractalType::Bottom);
         assert!(f2.as_ref().unwrap().lowest() == 1.15576);

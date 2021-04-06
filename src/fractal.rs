@@ -42,6 +42,22 @@ impl Fractal {
         Self { k1, k2, k3, ftype }
     }
 
+    //  ------k2---------
+    //  ------|----------
+    //  -k1-|---|-k3-----
+    //  ------|----------
+    //  -----k2----------
+
+    // 检查分型
+    pub fn check_fractal(k1: &Candle, k2: &Candle, k3: &Candle) -> Option<Fractal> {
+        debug_assert!(k1.index != k2.index && k1.index != k3.index && k2.index != k3.index);
+        if ((k1.high < k2.high) && (k2.high > k3.high)) || ((k1.low > k2.low) && (k2.low < k3.low))
+        {
+            return Some(Fractal::new(k1.clone(), k2.clone(), k3.clone()));
+        }
+        None
+    }
+
     pub fn get_k1(&self) -> &Candle {
         &self.k1
     }
@@ -125,7 +141,7 @@ mod tests {
         let d2 = f2.distance(&f1);
 
         assert_eq!(d1, d2);
-        assert_eq!(d1, 2);
+        assert_eq!(d1, 3);
 
         // test eq
         assert_ne!(f1, f2);
