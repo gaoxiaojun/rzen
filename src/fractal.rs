@@ -61,10 +61,6 @@ impl Fractal {
         &self.k3
     }
 
-    pub(crate) fn index(&self) -> u64 {
-        self.index
-    }
-
     pub(crate) fn distance(&self, other: &Fractal) -> u64 {
         distance(self, other)
     }

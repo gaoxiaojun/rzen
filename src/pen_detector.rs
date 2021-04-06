@@ -363,9 +363,6 @@ impl<'a> PenDetector<'a> {
 
 #[cfg(test)]
 mod tests {
-    use std::mem::size_of;
-
-    use super::*;
     use crate::bar::Bar;
     use crate::candle::Candle;
     use crate::fractal::Fractal;
@@ -451,11 +448,6 @@ mod tests {
             let bar = Bar::new(time, open, high, low, close);
             bars.push(bar);
         }
-        println!(
-            "bar count={} datetime size={}",
-            bars.len(),
-            size_of::<DateTime<Utc>>()
-        );
         bars
     }
 
