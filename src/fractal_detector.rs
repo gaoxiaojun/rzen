@@ -1,15 +1,15 @@
 use crate::bar::Bar;
 use crate::candle::Candle;
-use crate::candle_util::{CandleWithIndex, _check_contain, _check_direction, _check_fractal};
+use crate::candle_util::{CandleWithIndex, _check_contain, _check_direction};
 use crate::fractal::Fractal;
 use crate::ringbuffer::RingBuffer;
 
-pub struct CandleQueue {
+pub struct FractalDetector {
     window: RingBuffer<CandleWithIndex>,
     next_index: u64,
 }
 
-impl CandleQueue {
+impl FractalDetector {
     pub fn new() -> Self {
         Self {
             window: RingBuffer::new(3),
@@ -105,9 +105,37 @@ impl CandleQueue {
     }
 }
 
+//  ------k2---------
+//  ------|----------
+//  -k1-|---|-k3-----
+//  ------|----------
+//  -----k2----------
+
+// 检查分型
+pub(crate) fn _check_fractal(
+    k1: &CandleWithIndex,
+    k2: &CandleWithIndex,
+    k3: &CandleWithIndex,
+) -> Option<Fractal> {
+    debug_assert!(k1.index != k2.index && k1.index != k3.index && k2.index != k3.index);
+    if ((k1.candle.high < k2.candle.high) && (k2.candle.high > k3.candle.high))
+        || ((k1.candle.low > k2.candle.low) && (k2.candle.low < k3.candle.low))
+    {
+        return Some(Fractal::new(
+            k2.index,
+            k1.candle.clone(),
+            k2.candle.clone(),
+            k3.candle.clone(),
+        ));
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::candle_util::Direction;
+    use crate::fractal::FractalType;
     #[test]
     fn test_cq() {
         let b1 = Bar::new(1, 6.0, 8.0, 6.0, 8.0);
@@ -116,7 +144,7 @@ mod tests {
         let b4 = Bar::new(4, 6.0, 9.0, 6.0, 9.0);
         let b5 = Bar::new(5, 8.0, 11.0, 8.0, 11.0);
 
-        let mut cq = CandleQueue::new();
+        let mut cq = FractalDetector::new();
         let f1 = cq.on_new_bar(&b1);
         let f2 = cq.on_new_bar(&b2);
         let f3 = cq.on_new_bar(&b3);
@@ -134,5 +162,35 @@ mod tests {
         assert!(k1.high == 8.0 && k1.low == 6.0);
         assert!(k2.high == 9.0 && k2.low == 7.0);
         assert!(k3.high == 7.0 && k3.low == 6.0);
+    }
+
+    #[test]
+    fn test_check_fractal() {
+        let k1 = Candle::new(1052779380000, 1.15642, 1.15627);
+        let k2 = Candle::new(1052779380000, 1.15645, 1.15634);
+        let k3 = Candle::new(1052779500000, 1.15638, 1.1562);
+        let k4 = Candle::new(1052780640000, 1.15604, 1.1559);
+        let k5 = Candle::new(1052780820000, 1.15602, 1.15576);
+        let k6 = Candle::new(1052780940000, 1.15624, 1.15599);
+
+        let c1 = CandleWithIndex::new(0, k1);
+        let c2 = CandleWithIndex::new(10, k2);
+        let c3 = CandleWithIndex::new(20, k3);
+        let c4 = CandleWithIndex::new(30, k4);
+        let c5 = CandleWithIndex::new(40, k5);
+        let c6 = CandleWithIndex::new(50, k6);
+
+        let direction = _check_direction(&c1, &c2);
+        assert!(direction == Direction::Up);
+
+        let f1 = _check_fractal(&c1, &c2, &c3);
+        assert!(f1.is_some());
+        assert!(f1.as_ref().unwrap().fractal_type() == FractalType::Top);
+        assert!(f1.as_ref().unwrap().highest() == 1.15645);
+
+        let f2 = _check_fractal(&c4, &c5, &c6);
+        assert!(f2.is_some());
+        assert!(f2.as_ref().unwrap().fractal_type() == FractalType::Bottom);
+        assert!(f2.as_ref().unwrap().lowest() == 1.15576);
     }
 }

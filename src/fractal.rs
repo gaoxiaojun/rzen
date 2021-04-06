@@ -5,7 +5,6 @@ pub enum FractalType {
     Top,
     Bottom,
 }
-
 // 分型
 #[derive(Debug, Clone)]
 pub struct Fractal {
@@ -85,20 +84,8 @@ impl Fractal {
     pub fn fractal_type(&self) -> FractalType {
         self.ftype
     }
-
-    // 分型区间概念
-    // 顶分型是[k1,k3最低点, k2.high]
-    // 底分型是[k2.low, k1,k3最高点]
-    pub fn range(&self) -> (f64, f64) {
-        if self.ftype == FractalType::Top {
-            (f64::min(self.k1.low, self.k3.low), self.k2.high)
-        } else {
-            (self.k2.low, f64::max(self.k1.high, self.k3.high))
-        }
-    }
-
     // 分型最高点
-    pub fn high(&self) -> f64 {
+    pub fn highest(&self) -> f64 {
         if self.ftype == FractalType::Top {
             self.k2.high
         } else {
@@ -107,7 +94,7 @@ impl Fractal {
     }
 
     // 分型最低点
-    pub fn low(&self) -> f64 {
+    pub fn lowest(&self) -> f64 {
         if self.ftype == FractalType::Bottom {
             self.k2.low
         } else {
@@ -116,18 +103,7 @@ impl Fractal {
     }
 
     pub fn is_contain(&self, other: &Fractal) -> bool {
-        let lhs_highest = f64::max(f64::max(self.k1.high, self.k2.high), self.k3.high);
-        let lhs_lowest = f64::min(f64::min(self.k1.low, self.k2.low), self.k3.low);
-
-        let rhs_highest = f64::max(f64::max(other.k1.high, other.k2.high), other.k3.high);
-        let rhs_lowest = f64::min(f64::min(other.k1.low, other.k2.low), other.k3.low);
-
-        debug_assert!(lhs_highest == self.high());
-        debug_assert!(lhs_lowest == self.low());
-        debug_assert!(rhs_highest == other.high());
-        debug_assert!(rhs_lowest == other.low());
-
-        if lhs_highest >= rhs_highest && lhs_lowest <= rhs_lowest {
+        if self.highest() >= other.highest() && self.lowest() <= other.lowest() {
             true
         } else {
             false

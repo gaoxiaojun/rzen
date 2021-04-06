@@ -1,11 +1,6 @@
 use crate::bar::Bar;
 use chrono::prelude::*;
-use plotly::common::{TickFormatStop, Title};
-use plotly::layout::{Axis, RangeSelector, RangeSlider, SelectorButton, SelectorStep, StepMode};
-use plotly::{Candlestick, Layout, Ohlc, Plot, Scatter};
-use serde::Deserialize;
-use std::env;
-use std::path::PathBuf;
+use plotly::{Candlestick, Layout, Plot};
 use std::vec::Vec;
 
 pub fn draw_bar(bars: &Vec<Bar>) {

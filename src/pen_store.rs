@@ -1,6 +1,5 @@
-use crate::fractal::Fractal;
-use crate::fractal_series::PenEvent;
 use crate::pen::Pen;
+use crate::pen_detector::PenEvent;
 use crate::time::Time;
 use std::{cell::Cell, collections::BTreeMap};
 

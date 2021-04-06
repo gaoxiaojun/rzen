@@ -1,5 +1,5 @@
 use crate::fractal::{Fractal, FractalType};
-use crate::fractal_util::_is_pen;
+use crate::pen_util::_is_pen;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PenType {
@@ -40,18 +40,18 @@ impl Pen {
     }
 
     pub fn update_to(&mut self, to: Fractal) {
-        if !_is_pen(&self.from, &to) {
+        /* if !_is_pen(&self.from, &to) {
             println!(
                 "from: {:?}--{}--{:?}, \nold_to: {:?}--{}--{:?}\nnew_to: {:?}--{}--{:?}",
                 self.from.fractal_type(),
                 self.from.index(),
-                self.from.range(),
+                (self.from.highest(), self.from.lowest()),
                 self.to.fractal_type(),
                 self.to.index(),
-                self.to.range(),
+                (self.to.highest(), self.to.lowest()),
                 to.fractal_type(),
                 to.index(),
-                to.range()
+                (to.highest(), to.lowest()),
             );
             println!(
                 "{:?}\n{:?}\n{:?}",
@@ -66,7 +66,7 @@ impl Pen {
                 self.to.get_k3()
             );
             println!("{:?}\n{:?}\n{:?}", to.get_k1(), to.get_k2(), to.get_k3());
-        }
+        } */
         debug_assert!(_is_pen(self.from(), &to));
         self.to = to;
         self.status = PenStatus::Continue;
@@ -83,9 +83,4 @@ impl Pen {
     pub fn to(&self) -> &Fractal {
         &self.to
     }
-}
-
-#[cfg(test)]
-mod tests {
-    //#[test]
 }

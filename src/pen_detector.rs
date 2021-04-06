@@ -1,7 +1,7 @@
 use crate::fractal::Fractal;
-use crate::fractal_util::{MergeAction, _is_pen, _is_valid_fractal, _merge_same_type};
 use crate::pen::Pen;
 use crate::pen_store::PenStore;
+use crate::pen_util::{MergeAction, _is_pen, _is_valid_fractal, _merge_same_type};
 use crate::ringbuffer::RingBuffer;
 
 // 一、寻找第一笔
@@ -82,13 +82,13 @@ pub enum PenEvent<'a> {
 }
 
 // TODO:考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
-pub struct FractalQueue<'a> {
+pub struct PenDetector<'a> {
     window: RingBuffer<Fractal>,
     current_pen: Option<Pen>,
     store: Option<&'a PenStore>,
 }
 
-impl<'a> FractalQueue<'a> {
+impl<'a> PenDetector<'a> {
     pub fn new() -> Self {
         Self {
             window: RingBuffer::new(3),
@@ -368,11 +368,11 @@ mod tests {
     use super::*;
     use crate::bar::Bar;
     use crate::candle::Candle;
-    use crate::candle_series::CandleQueue;
     use crate::fractal::Fractal;
-    use crate::fractal_series::FractalQueue;
-    use crate::fractal_util::_is_pen;
+    use crate::fractal_detector::FractalDetector;
+    use crate::pen_detector::PenDetector;
     use crate::pen_store::PenStore;
+    use crate::pen_util::_is_pen;
     use crate::plot::draw_bar;
     use crate::time::Time;
     use chrono::prelude::*;
@@ -393,9 +393,9 @@ mod tests {
         println!(
             "f1.type = {:?} f1.range = {:?}, f2.type = {:?}, f2.range = {:?}",
             f1.fractal_type(),
-            f1.range(),
+            (f1.highest(), f1.lowest()),
             f2.fractal_type(),
-            f2.range()
+            (f2.highest(), f1.lowest())
         );
         let is_pen = _is_pen(&f1, &f2);
         assert!(is_pen);
@@ -407,7 +407,7 @@ mod tests {
         let (bars, fractals) = load_fractal();
         println!("total fractals:{}", fractals.len());
 
-        let mut fq = FractalQueue::new();
+        let mut fq = PenDetector::new();
         fq.set_store(&store);
 
         for f in fractals {
@@ -421,7 +421,7 @@ mod tests {
     fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {
         let mut fractals: Vec<Fractal> = Vec::new();
         let bars = load_bar2();
-        let mut cq = CandleQueue::new();
+        let mut cq = FractalDetector::new();
         for bar in &bars {
             if let Some(f) = cq.on_new_bar(bar) {
                 fractals.push(f);

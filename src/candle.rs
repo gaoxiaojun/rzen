@@ -1,5 +1,3 @@
-use core::f64;
-
 use crate::bar::Bar;
 use crate::time::Time;
 
