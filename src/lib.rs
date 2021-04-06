@@ -7,4 +7,5 @@ mod pen_detector;
 pub mod pivot;
 pub mod plot;
 mod ringbuffer;
+pub mod segment_detector;
 pub mod time;
