@@ -8,7 +8,6 @@ pub enum FractalType {
 // 分型
 #[derive(Debug, Clone)]
 pub struct Fractal {
-    index: u64,
     k1: Candle,
     k2: Candle,
     k3: Candle,
@@ -18,15 +17,15 @@ pub struct Fractal {
 
 // 计算分型之间K线的数量,K线是经过包含处理过的
 fn distance(lhs: &Fractal, rhs: &Fractal) -> u64 {
-    if rhs.index > lhs.index {
-        rhs.index - lhs.index
+    if rhs.k2.index > lhs.k2.index {
+        rhs.k2.index - lhs.k2.index
     } else {
-        lhs.index - rhs.index
+        lhs.k2.index - rhs.k2.index
     }
 }
 
 impl Fractal {
-    pub fn new(index: u64, k1: Candle, k2: Candle, k3: Candle) -> Self {
+    pub fn new(k1: Candle, k2: Candle, k3: Candle) -> Self {
         debug_assert!(
             // 合并之后，分型的最高/最低是唯一的，所以没有等号
             ((k1.high < k2.high) && (k2.high > k3.high)) // Top
@@ -40,13 +39,7 @@ impl Fractal {
             FractalType::Bottom
         };
 
-        Self {
-            index,
-            k1,
-            k2,
-            k3,
-            ftype,
-        }
+        Self { k1, k2, k3, ftype }
     }
 
     pub fn get_k1(&self) -> &Candle {
@@ -118,15 +111,15 @@ mod tests {
     use crate::{candle::Candle, fractal::Fractal};
     #[test]
     fn test_distance_and_eq() {
-        let k1 = Candle::new(2000000, 100.0, 30.0);
-        let k2 = Candle::new(2000001, 150.0, 120.0);
-        let k3 = Candle::new(2000002, 130.0, 60.0);
+        let k1 = Candle::new(9, 2000000, 100.0, 30.0);
+        let k2 = Candle::new(10, 2000001, 150.0, 120.0);
+        let k3 = Candle::new(11, 2000002, 130.0, 60.0);
 
-        let k4 = Candle::new(3000000, 90.0, 60.0);
-        let k5 = Candle::new(3000001, 70.0, 30.0);
-        let k6 = Candle::new(3000002, 80.0, 50.0);
-        let f1 = Fractal::new(10, k1, k2, k3);
-        let f2 = Fractal::new(12, k4, k5, k6);
+        let k4 = Candle::new(12, 3000000, 90.0, 60.0);
+        let k5 = Candle::new(13, 3000001, 70.0, 30.0);
+        let k6 = Candle::new(14, 3000002, 80.0, 50.0);
+        let f1 = Fractal::new(k1, k2, k3);
+        let f2 = Fractal::new(k4, k5, k6);
 
         let d1 = f1.distance(&f2);
         let d2 = f2.distance(&f1);

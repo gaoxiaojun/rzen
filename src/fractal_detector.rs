@@ -1,11 +1,10 @@
 use crate::bar::Bar;
 use crate::candle::Candle;
-use crate::candle_util::{CandleWithIndex, _check_contain, _check_direction};
 use crate::fractal::Fractal;
 use crate::ringbuffer::RingBuffer;
 
 pub struct FractalDetector {
-    window: RingBuffer<CandleWithIndex>,
+    window: RingBuffer<Candle>,
     next_index: u64,
 }
 
@@ -17,15 +16,10 @@ impl FractalDetector {
         }
     }
 
-    fn add_candle(&mut self, candle: Candle) {
-        let c = CandleWithIndex::new(self.next_index, candle);
+    fn add_candle(&mut self, bar: &Bar) {
+        let c = Candle::new(self.next_index, bar.time, bar.high, bar.low);
         self.next_index += 1;
         self.window.push(c);
-    }
-
-    fn add_bar(&mut self, bar: &Bar) {
-        let c = Candle::from_bar(bar);
-        self.add_candle(c);
     }
 
     // 检查是否为顶底分型
@@ -44,12 +38,12 @@ impl FractalDetector {
         let direction = {
             let k1 = self.window.get(-2).unwrap();
             let k2 = self.window.get(-1).unwrap();
-            _check_direction(k1, k2)
+            Candle::check_direction(k1, k2)
         };
 
         let current = self.window.get_mut(-1).unwrap();
 
-        _check_contain(direction, current, bar)
+        Candle::check_contain(direction, current, bar)
     }
 
     // 处理K线包含关系，更新内部缓冲区，检测分型
@@ -61,7 +55,7 @@ impl FractalDetector {
         match len {
             0 => {
                 // 队列中没有K线
-                self.add_bar(bar);
+                self.add_candle(bar);
             }
 
             1 => {
@@ -70,8 +64,8 @@ impl FractalDetector {
                 // 1. 如果第一根K包含第二根K，直接忽略与第一根K存在包含的K线，直到遇到不包含的
                 // 2. 如果第一根K包含在第二根K，忽略第一根K，从第二根K开始
                 let last = self.window.get(-1).unwrap();
-                let k1_include_k2 = last.candle.high >= bar.high && last.candle.low <= bar.low;
-                let k2_include_k1 = last.candle.high <= bar.high && last.candle.low >= bar.low;
+                let k1_include_k2 = last.high >= bar.high && last.low <= bar.low;
+                let k2_include_k1 = last.high <= bar.high && last.low >= bar.low;
                 if k1_include_k2 {
                     // 情况1，忽略当前Bar，直到遇到不包含的
                     return None;
@@ -82,13 +76,13 @@ impl FractalDetector {
                     self.window.clear();
                 }
                 // 当前Bar作为Candle放入队列
-                self.add_bar(bar);
+                self.add_candle(bar);
             }
 
             2 => {
                 let merged = self.process_contain_relationship(bar);
                 if !merged {
-                    self.add_bar(bar);
+                    self.add_candle(bar);
                 }
             }
 
@@ -96,7 +90,7 @@ impl FractalDetector {
                 let merged = self.process_contain_relationship(bar);
                 if !merged {
                     let result = self.check_fractal();
-                    self.add_bar(bar);
+                    self.add_candle(bar);
                     return result;
                 }
             }
@@ -112,21 +106,10 @@ impl FractalDetector {
 //  -----k2----------
 
 // 检查分型
-pub(crate) fn _check_fractal(
-    k1: &CandleWithIndex,
-    k2: &CandleWithIndex,
-    k3: &CandleWithIndex,
-) -> Option<Fractal> {
+pub(crate) fn _check_fractal(k1: &Candle, k2: &Candle, k3: &Candle) -> Option<Fractal> {
     debug_assert!(k1.index != k2.index && k1.index != k3.index && k2.index != k3.index);
-    if ((k1.candle.high < k2.candle.high) && (k2.candle.high > k3.candle.high))
-        || ((k1.candle.low > k2.candle.low) && (k2.candle.low < k3.candle.low))
-    {
-        return Some(Fractal::new(
-            k2.index,
-            k1.candle.clone(),
-            k2.candle.clone(),
-            k3.candle.clone(),
-        ));
+    if ((k1.high < k2.high) && (k2.high > k3.high)) || ((k1.low > k2.low) && (k2.low < k3.low)) {
+        return Some(Fractal::new(k1.clone(), k2.clone(), k3.clone()));
     }
     None
 }
@@ -134,7 +117,7 @@ pub(crate) fn _check_fractal(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::candle_util::Direction;
+    use crate::candle::Direction;
     use crate::fractal::FractalType;
     #[test]
     fn test_cq() {
@@ -166,21 +149,14 @@ mod tests {
 
     #[test]
     fn test_check_fractal() {
-        let k1 = Candle::new(1052779380000, 1.15642, 1.15627);
-        let k2 = Candle::new(1052779380000, 1.15645, 1.15634);
-        let k3 = Candle::new(1052779500000, 1.15638, 1.1562);
-        let k4 = Candle::new(1052780640000, 1.15604, 1.1559);
-        let k5 = Candle::new(1052780820000, 1.15602, 1.15576);
-        let k6 = Candle::new(1052780940000, 1.15624, 1.15599);
+        let c1 = Candle::new(0, 1052779380000, 1.15642, 1.15627);
+        let c2 = Candle::new(10, 1052779380000, 1.15645, 1.15634);
+        let c3 = Candle::new(20, 1052779500000, 1.15638, 1.1562);
+        let c4 = Candle::new(30, 1052780640000, 1.15604, 1.1559);
+        let c5 = Candle::new(40, 1052780820000, 1.15602, 1.15576);
+        let c6 = Candle::new(50, 1052780940000, 1.15624, 1.15599);
 
-        let c1 = CandleWithIndex::new(0, k1);
-        let c2 = CandleWithIndex::new(10, k2);
-        let c3 = CandleWithIndex::new(20, k3);
-        let c4 = CandleWithIndex::new(30, k4);
-        let c5 = CandleWithIndex::new(40, k5);
-        let c6 = CandleWithIndex::new(50, k6);
-
-        let direction = _check_direction(&c1, &c2);
+        let direction = Candle::check_direction(&c1, &c2);
         assert!(direction == Direction::Up);
 
         let f1 = _check_fractal(&c1, &c2, &c3);

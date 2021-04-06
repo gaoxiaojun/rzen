@@ -1,7 +1,7 @@
 pub mod analyzer;
 pub mod bar;
+//pub mod candle;
 pub mod candle;
-pub mod candle_util;
 pub mod fractal;
 pub mod fractal_detector;
 pub mod pen;
