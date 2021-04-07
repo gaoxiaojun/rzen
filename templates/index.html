@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <title>TradingVueJs Demo</title>
     <script src="https://unpkg.com/vue@2.6.12/dist/vue.min.js"></script>
-    <script src="./trading-vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/trading-vue-js@1.0.2/dist/trading-vue.min.js"></script>
     <script src="./data.json"></script>
     <style>
         html,
@@ -17,14 +17,15 @@
             padding: 0;
             overflow: hidden;
         }
+
         .night-mode {
             position: absolute;
             top: 10px;
             right: 80px;
             color: #888;
-            font: 11px -apple-system,BlinkMacSystemFont,
-                Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,
-                Fira Sans,Droid Sans,Helvetica Neue,
+            font: 11px -apple-system, BlinkMacSystemFont,
+                Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell,
+                Fira Sans, Droid Sans, Helvetica Neue,
                 sans-serif
         }
     </style>
@@ -33,11 +34,8 @@
 
 <body>
     <div id="app">
-        <trading-vue :data="data" :width="this.width" :height="this.height"
-            :toolbar="true"
-            :chart-config="{TB_ICON_BRI: 1.25}"
-            :color-back="colors.colorBack"
-            :color-grid="colors.colorGrid"
+        <trading-vue :data="data" :width="this.width" :height="this.height" :toolbar="true"
+            :chart-config="{TB_ICON_BRI: 1.25}" :color-back="colors.colorBack" :color-grid="colors.colorGrid"
             :color-text="colors.colorText">
         </trading-vue>
         <span class="night-mode">
