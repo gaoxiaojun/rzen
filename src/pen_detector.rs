@@ -359,7 +359,7 @@ mod tests {
     use crate::fractal::Fractal;
     use crate::fractal_detector::FractalDetector;
     use crate::pen_detector::PenDetector;
-    use crate::plot::draw_bar;
+    use crate::plot::{draw_bar_tradingview, draw_bar_vue};
     use crate::time::Time;
     use chrono::prelude::*;
     use csv;
@@ -412,7 +412,8 @@ mod tests {
         }
 
         println!("pen_count = {}, pen_update ={}", pen_count, pen_update);
-        draw_bar(&bars);
+        draw_bar_vue(&bars);
+        draw_bar_tradingview(&bars);
     }
 
     fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {

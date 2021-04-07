@@ -13,14 +13,14 @@ fn templates_root_path() -> PathBuf {
     templates
 }
 
-fn render_bar(bar: &Bar) -> String {
+fn render_bar_vue(bar: &Bar) -> String {
     format!(
         "[ {}, {}, {}, {}, {} ]",
         bar.time, bar.open, bar.high, bar.low, bar.close
     )
 }
 
-fn render_bars(bars: &Vec<Bar>) -> String {
+fn render_bars_vue(bars: &Vec<Bar>) -> String {
     let mut buf = String::new();
     let header = r#"Data = {
         "chart": {
@@ -33,15 +33,15 @@ fn render_bars(bars: &Vec<Bar>) -> String {
         }
     }"#;
     buf.push_str(header);
-    let data: Vec<String> = bars.into_iter().map(|bar| render_bar(bar)).collect();
+    let data: Vec<String> = bars.into_iter().map(|bar| render_bar_vue(bar)).collect();
     let all_data = data.join(",\n");
     buf.push_str(all_data.as_str());
     buf.push_str(bottom);
     buf
 }
 
-pub fn draw_bar(bars: &Vec<Bar>) {
-    let rendered = render_bars(bars);
+pub fn draw_bar_vue(bars: &Vec<Bar>) {
+    let rendered = render_bars_vue(bars);
     let rendered = rendered.as_bytes();
     let mut temp = env::temp_dir();
     let mut src = templates_root_path();
@@ -55,11 +55,65 @@ pub fn draw_bar(bars: &Vec<Bar>) {
             .expect("failed to write html output");
         file.flush().unwrap();
     }
+    println!("{}", temp.display());
     temp.pop();
 
     // copy index.html
-    temp.push("index.html");
+    temp.push("index_vue.html");
     src.push("index.html");
+    std::fs::copy(src.as_path(), temp.as_path()).expect("failed to copy index.html");
+
+    // display in browser
+    show_with_default_app(temp.to_str().unwrap());
+}
+
+fn render_bar_tradingview(bar: &Bar) -> String {
+    format!(
+        "{{ time:{}, open:{}, high:{}, low:{}, close:{} }}",
+        bar.time / 1000,
+        bar.open,
+        bar.high,
+        bar.low,
+        bar.close
+    )
+}
+
+fn render_bars_tradingview(bars: &Vec<Bar>) -> String {
+    let mut buf = String::new();
+    let header = "Data = [\n";
+    let bottom = "]";
+    buf.push_str(header);
+    let data: Vec<String> = bars
+        .into_iter()
+        .map(|bar| render_bar_tradingview(bar))
+        .collect();
+    let all_data = data.join(",\n");
+    buf.push_str(all_data.as_str());
+    buf.push_str(bottom);
+    buf
+}
+
+pub fn draw_bar_tradingview(bars: &Vec<Bar>) {
+    let rendered = render_bars_tradingview(bars);
+    let rendered = rendered.as_bytes();
+    let mut temp = env::temp_dir();
+    let mut src = templates_root_path();
+
+    // write data.json
+    temp.push("chart-data.json");
+    let temp_path = temp.to_str().unwrap();
+    {
+        let mut file = File::create(temp_path).unwrap();
+        file.write_all(rendered)
+            .expect("failed to write html output");
+        file.flush().unwrap();
+    }
+    println!("{}", temp.display());
+    temp.pop();
+
+    // copy index.html
+    temp.push("index_tradingview.html");
+    src.push("index_chart.html");
     std::fs::copy(src.as_path(), temp.as_path()).expect("failed to copy index.html");
 
     // display in browser
