@@ -10,7 +10,6 @@ const DEFAULT_HTML_APP_NOT_FOUND: &str = "Could not find default application for
 fn templates_root_path() -> PathBuf {
     let root = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let templates = root.join("templates");
-    println!("templdates= {}", templates.display());
     templates
 }
 
@@ -43,21 +42,18 @@ fn render_bars(bars: &Vec<Bar>) -> String {
 
 pub fn draw_bar(bars: &Vec<Bar>) {
     let rendered = render_bars(bars);
-    println!("rendered count = {}", rendered.len());
     let rendered = rendered.as_bytes();
     let mut temp = env::temp_dir();
     let mut src = templates_root_path();
 
     // write data.json
     temp.push("data.json");
-    println!("temp dir = {}", temp.display());
     let temp_path = temp.to_str().unwrap();
     {
         let mut file = File::create(temp_path).unwrap();
         file.write_all(rendered)
             .expect("failed to write html output");
         file.flush().unwrap();
-        println!("data.json written");
     }
     temp.pop();
 
@@ -65,7 +61,6 @@ pub fn draw_bar(bars: &Vec<Bar>) {
     temp.push("index.html");
     src.push("index.html");
     std::fs::copy(src.as_path(), temp.as_path()).expect("failed to copy index.html");
-    println!("copy index.html {}", temp.display());
 
     // display in browser
     show_with_default_app(temp.to_str().unwrap());
