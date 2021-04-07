@@ -31,7 +31,7 @@ fn render_bars(bars: &Vec<Bar>) -> String {
     let bottom = r#"
             ],
             "indexBased": true
-        },
+        }
     }"#;
     buf.push_str(header);
     let data: Vec<String> = bars.into_iter().map(|bar| render_bar(bar)).collect();
