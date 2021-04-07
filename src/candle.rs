@@ -55,11 +55,11 @@ impl Candle {
                         return true;
                     }
 
-                    current.high = f64::min(bar.high, current.high);
-                    current.low = f64::min(bar.low, current.low);
                     if current.low > bar.low {
                         current.time = bar.time;
                     }
+                    current.high = f64::min(bar.high, current.high);
+                    current.low = f64::min(bar.low, current.low);
                 }
 
                 Direction::Up => {
@@ -69,11 +69,11 @@ impl Candle {
                         return true;
                     }
 
-                    current.high = f64::max(bar.high, current.high);
-                    current.low = f64::max(bar.low, current.low);
                     if current.high < bar.high {
                         current.time = bar.time;
                     }
+                    current.high = f64::max(bar.high, current.high);
+                    current.low = f64::max(bar.low, current.low);
                 }
             }
             true
