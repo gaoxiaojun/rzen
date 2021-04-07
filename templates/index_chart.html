@@ -56,22 +56,25 @@
                 locale: 'zh-CN',
             },
             timeScale: {
-                rightOffset: 12,
-                barSpacing: 3,
-                fixLeftEdge: true,
-                lockVisibleTimeRangeOnResize: true,
-                rightBarStaysOnScroll: true,
-                borderVisible: false,
-                borderColor: '#fff000',
-                visible: true,
                 timeVisible: true,
                 secondsVisible: true,
+            },
+            grid: {
+                vertLines: {
+                    visible: false,
+                },
+                horzLines: {
+                    visible: false,
+                },
             },
         });
         chart.timeScale().fitContent();
 
-        const candlestickSeries = chart.addCandlestickSeries({ symbol: 'EURUSD' });
+        const candlestickSeries = chart.addCandlestickSeries();
         // set data
-        candlestickSeries.setData(Data);
+        candlestickSeries.setData(Data.candle);
+
+        const lineSeries = chart.addLineSeries();
+        lineSeries.setData(Data.line);
     </script>
 </body>

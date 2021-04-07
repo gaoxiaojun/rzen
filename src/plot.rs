@@ -1,4 +1,5 @@
 use crate::bar::Bar;
+use crate::fractal::{Fractal, FractalType};
 use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
@@ -78,23 +79,50 @@ fn render_bar_tradingview(bar: &Bar) -> String {
     )
 }
 
-fn render_bars_tradingview(bars: &Vec<Bar>) -> String {
+fn render_pen_tradingview(f: &Fractal) -> String {
+    let price = if f.fractal_type() == FractalType::Top {
+        f.highest()
+    } else {
+        f.lowest()
+    };
+    format!("{{ time:{}, value: {} }}", f.time() / 1000, price)
+}
+
+fn render_bars_tradingview(bars: &Vec<Bar>, pens: &Vec<Fractal>) -> String {
     let mut buf = String::new();
-    let header = "Data = [\n";
-    let bottom = "]";
+    let header = "Data ={ \n";
+    let bar_header = "candle : [\n";
+    let bar_bottom = "],\n";
+    let line_header = "line : [\n";
+    let line_bottom = "]\n";
+    let bottom = "}";
     buf.push_str(header);
-    let data: Vec<String> = bars
+
+    // candle data
+    buf.push_str(bar_header);
+    let bdata: Vec<String> = bars
         .into_iter()
         .map(|bar| render_bar_tradingview(bar))
         .collect();
-    let all_data = data.join(",\n");
-    buf.push_str(all_data.as_str());
+    let bar_data = bdata.join(",\n");
+    buf.push_str(bar_data.as_str());
+    buf.push_str(bar_bottom);
+
+    // line data
+    buf.push_str(line_header);
+    let fdata: Vec<String> = pens
+        .into_iter()
+        .map(|f| render_pen_tradingview(f))
+        .collect();
+    let line_data = fdata.join(",\n");
+    buf.push_str(line_data.as_str());
+    buf.push_str(line_bottom);
     buf.push_str(bottom);
     buf
 }
 
-pub fn draw_bar_tradingview(bars: &Vec<Bar>) {
-    let rendered = render_bars_tradingview(bars);
+pub fn draw_bar_tradingview(bars: &Vec<Bar>, pens: &Vec<Fractal>) {
+    let rendered = render_bars_tradingview(bars, pens);
     let rendered = rendered.as_bytes();
     let mut temp = env::temp_dir();
     let mut src = templates_root_path();

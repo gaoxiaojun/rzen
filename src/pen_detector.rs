@@ -394,17 +394,24 @@ mod tests {
 
         let mut pen_count = 0;
         let mut pen_update = 0;
+        let mut pens: Vec<Fractal> = Vec::new();
         for f in fractals {
             let event = fq.on_new_fractal(f.clone());
-            if let Some(e) = event {
-                match e {
-                    PenEvent::First(_, _) => {
+            if let Some(pen_event) = event {
+                match pen_event {
+                    PenEvent::First(a, b) => {
+                        pens.push(a);
+                        pens.push(b);
                         pen_count += 1;
                     }
-                    PenEvent::New(_) => {
+                    PenEvent::New(a) => {
+                        pens.push(a);
                         pen_count += 1;
                     }
-                    PenEvent::UpdateTo(_) => {
+
+                    PenEvent::UpdateTo(a) => {
+                        pens.pop();
+                        pens.push(a);
                         pen_update += 1;
                     }
                 }
@@ -412,8 +419,8 @@ mod tests {
         }
 
         println!("pen_count = {}, pen_update ={}", pen_count, pen_update);
-        draw_bar_vue(&bars);
-        draw_bar_tradingview(&bars);
+        //draw_bar_vue(&bars);
+        draw_bar_tradingview(&bars, &pens);
     }
 
     fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {
