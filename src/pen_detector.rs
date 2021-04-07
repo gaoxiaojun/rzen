@@ -444,7 +444,7 @@ mod tests {
             .has_headers(true)
             .from_reader(csv.as_bytes());
 
-        let china_timezone = FixedOffset::east(3 * 3600);
+        let china_timezone = FixedOffset::east(8 * 3600);
         for record in reader.records() {
             let record = record.unwrap();
             let timestr: &str = AsRef::<str>::as_ref(&record[0]);
