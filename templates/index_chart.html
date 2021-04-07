@@ -73,11 +73,21 @@
         });
         chart.timeScale().fitContent();
 
-        const candlestickSeries = chart.addCandlestickSeries();
+        const candlestickSeries = chart.addCandlestickSeries({
+            priceFormat: {
+                minMove: 0.00001,
+                precision: 5,
+            },
+        });
         // set data
         candlestickSeries.setData(Data.candle);
 
-        const lineSeries = chart.addLineSeries();
+        const lineSeries = chart.addLineSeries({
+            priceFormat: {
+                minMove: 0.00001,
+                precision: 5,
+            },
+        });
         lineSeries.setData(Data.line);
     </script>
 </body>
