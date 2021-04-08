@@ -79,7 +79,7 @@ fn render_bar_tradingview(bar: &Bar) -> String {
     )
 }
 
-fn render_pen_tradingview(f: &Fractal) -> String {
+fn render_fractal_tradingview(f: &Fractal) -> String {
     let price = if f.fractal_type() == FractalType::Top {
         f.highest()
     } else {
@@ -88,13 +88,19 @@ fn render_pen_tradingview(f: &Fractal) -> String {
     format!("{{ time:{}, value: {} }}", f.time() / 1000, price)
 }
 
-fn render_bars_tradingview(bars: &Vec<Bar>, pens: &Vec<Fractal>) -> String {
+fn render_bars_tradingview(
+    bars: &Vec<Bar>,
+    pens: &Vec<Fractal>,
+    segments: &Vec<Fractal>,
+) -> String {
     let mut buf = String::new();
     let header = "Data ={ \n";
     let bar_header = "candle : [\n";
     let bar_bottom = "],\n";
-    let line_header = "line : [\n";
-    let line_bottom = "]\n";
+    let line_header = "pen : [\n";
+    let line_bottom = "],\n";
+    let segment_header = "segment : [\n";
+    let segment_bottom = "]\n";
     let bottom = "}";
     buf.push_str(header);
 
@@ -112,17 +118,28 @@ fn render_bars_tradingview(bars: &Vec<Bar>, pens: &Vec<Fractal>) -> String {
     buf.push_str(line_header);
     let fdata: Vec<String> = pens
         .into_iter()
-        .map(|f| render_pen_tradingview(f))
+        .map(|f| render_fractal_tradingview(f))
         .collect();
     let line_data = fdata.join(",\n");
     buf.push_str(line_data.as_str());
     buf.push_str(line_bottom);
+
+    // segment data
+    buf.push_str(segment_header);
+    let sdata: Vec<String> = segments
+        .into_iter()
+        .map(|f| render_fractal_tradingview(f))
+        .collect();
+    let segment_data = sdata.join(",\n");
+    buf.push_str(segment_data.as_str());
+    buf.push_str(segment_bottom);
+    //
     buf.push_str(bottom);
     buf
 }
 
-pub fn draw_bar_tradingview(bars: &Vec<Bar>, pens: &Vec<Fractal>) {
-    let rendered = render_bars_tradingview(bars, pens);
+pub fn draw_bar_tradingview(bars: &Vec<Bar>, pens: &Vec<Fractal>, segments: &Vec<Fractal>) {
+    let rendered = render_bars_tradingview(bars, pens, segments);
     let rendered = rendered.as_bytes();
     let mut temp = env::temp_dir();
     let mut src = templates_root_path();

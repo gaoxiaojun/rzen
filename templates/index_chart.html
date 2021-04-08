@@ -83,11 +83,22 @@
         candlestickSeries.setData(Data.candle);
 
         const lineSeries = chart.addLineSeries({
+            lineWidth: 1,
             priceFormat: {
                 minMove: 0.00001,
                 precision: 5,
             },
         });
-        lineSeries.setData(Data.line);
+        lineSeries.setData(Data.pen);
+
+        const SegmentSeries = chart.addLineSeries({
+            color: '#f48fb1',
+            lineWidth: 2,
+            priceFormat: {
+                minMove: 0.00001,
+                precision: 5,
+            },
+        });
+        SegmentSeries.setData(Data.segment);
     </script>
 </body>

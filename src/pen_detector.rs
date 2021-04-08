@@ -419,8 +419,9 @@ mod tests {
         }
 
         println!("pen_count = {}, pen_update ={}", pen_count, pen_update);
-        //draw_bar_vue(&bars);
-        draw_bar_tradingview(&bars, &pens);
+        let segments: Vec<Fractal> = Vec::new();
+        draw_bar_vue(&bars);
+        draw_bar_tradingview(&bars, &pens, &&segments);
     }
 
     fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {
