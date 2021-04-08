@@ -9,7 +9,8 @@ pub struct Analyzer {
     fd: FractalDetector,
     pd: PenDetector,
     sd: SegmentDetector,
-    pens: Vec<Fractal>,
+    fractals: Vec<Fractal>,
+    pens: Vec<usize>,
     segments: Vec<usize>,
 }
 
@@ -19,6 +20,7 @@ impl Analyzer {
             fd: FractalDetector::new(),
             pd: PenDetector::new(),
             sd: SegmentDetector::new(),
+            fractals: Vec::new(),
             pens: Vec::new(),
             segments: Vec::new(),
         }
@@ -31,19 +33,19 @@ impl Analyzer {
             if let Some(pen_event) = pe {
                 match pen_event {
                     PenEvent::First(a, b) => {
-                        self.pens.push(a);
-                        self.pens.push(b);
+                        self.fractals.push(a);
+                        self.fractals.push(b);
                     }
                     PenEvent::New(a) => {
-                        self.pens.push(a);
+                        self.fractals.push(a);
                         // 线段检测算法只关注已经完成的笔
                         // PenEvent::New代表原有笔已经终结
-                        self.sd.on_pen_event(&self.pens);
+                        self.sd.on_pen_event(&self.fractals);
                     }
 
                     PenEvent::UpdateTo(a) => {
-                        self.pens.pop();
-                        self.pens.push(a);
+                        self.fractals.pop();
+                        self.fractals.push(a);
                     }
                 }
             }
@@ -65,7 +67,7 @@ mod tests {
         for bar in &bars {
             analyzer.on_new_bar(bar);
         }
-        let count = analyzer.pens.len();
+        let count = analyzer.fractals.len();
         println!("count = {}", count);
     }
 

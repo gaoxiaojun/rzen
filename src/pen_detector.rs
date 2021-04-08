@@ -62,9 +62,10 @@ use crate::ringbuffer::RingBuffer;
 
 // 关于分型有效性的问题
 // 1. 分型包含
-// 笔的两个端点分型，不能有前包含关系，后包含关系会破坏当下确定的总原则
-// 特例：A-B-C-D, A-B是笔，当BC成笔的时候，AB已经确认
-// 如果后续笔延伸到D的时候，如果D包含B，BD无法确认导致AB要修改
+// 笔的两个端点分型，不能有后包含关系（前分型包含后分型)，允许有前包含关系（后分型包含前分型),
+// 因为前包含关系会破坏当下确定的总原则
+// 举例：A-B-C-D, A-B是笔，当BC成笔的时候，AB已经确认
+// 如果后续笔延伸到D的时候，如果D包含B，BD无法确认会导致AB要修改
 
 // 上述算法解决的99%的笔问题，但是还有一种情况，无法完美处理
 // 例子:
@@ -107,11 +108,6 @@ pub fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
         return false;
     }
 
-    // 1.2 包含关系分析，无效
-    //if f1.is_contain(f2) {
-    //    return false;
-    //}
-
     true
 }
 
@@ -142,6 +138,12 @@ pub enum PenEvent {
     First(Fractal, Fractal),
     New(Fractal),
     UpdateTo(Fractal),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PenDirection {
+    Up,
+    Down,
 }
 
 // TODO:考虑一种特殊情况就是顶分型高点相等或者底分型低点相等
@@ -175,6 +177,23 @@ impl PenDetector {
 
     fn ab_is_pen(&self) -> bool {
         self._is_pen(0)
+    }
+
+    fn pen_direction(&self) -> Option<PenDirection> {
+        if self.has_pen {
+            let a = self.window.get(0).unwrap();
+            let b = self.window.get(1).unwrap();
+            let direction = {
+                if b.price() > a.price() {
+                    Some(PenDirection::Up)
+                } else {
+                    Some(PenDirection::Down)
+                }
+            };
+            direction
+        } else {
+            None
+        }
     }
 
     fn state0(&mut self, f: Fractal) -> Option<PenEvent> {
@@ -347,8 +366,13 @@ impl PenDetector {
     pub fn on_new_fractal(&mut self, f: Fractal) -> Option<PenEvent> {
         // step1: valid fractal
         if let Some(last) = self.window.get(-1) {
-            if !_is_valid_fractal(last, &f) {
-                return None;
+            let direction = self.pen_direction();
+            if (f.fractal_type() == FractalType::Bottom && direction == Some(PenDirection::Up))
+                || (f.fractal_type() == FractalType::Top && direction == Some(PenDirection::Down))
+            {
+                if !_is_valid_fractal(last, &f) {
+                    return None;
+                }
             }
         }
 
