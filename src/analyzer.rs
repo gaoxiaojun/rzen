@@ -1,13 +1,16 @@
 use crate::fractal::Fractal;
 use crate::fractal_detector::FractalDetector;
 use crate::pen_detector::PenDetector;
+use crate::segment_detector::SegmentDetector;
 use crate::{bar::Bar, pen_detector::PenEvent};
 
 #[derive(Debug)]
 pub struct Analyzer {
     fd: FractalDetector,
     pd: PenDetector,
-    pub pens: Vec<Fractal>,
+    sd: SegmentDetector,
+    pens: Vec<Fractal>,
+    segments: Vec<usize>,
 }
 
 impl Analyzer {
@@ -15,7 +18,9 @@ impl Analyzer {
         Self {
             fd: FractalDetector::new(),
             pd: PenDetector::new(),
+            sd: SegmentDetector::new(),
             pens: Vec::new(),
+            segments: Vec::new(),
         }
     }
 
@@ -31,6 +36,9 @@ impl Analyzer {
                     }
                     PenEvent::New(a) => {
                         self.pens.push(a);
+                        // 线段检测算法只关注已经完成的笔
+                        // PenEvent::New代表原有笔已经终结
+                        self.sd.on_pen_event(&self.pens);
                     }
 
                     PenEvent::UpdateTo(a) => {

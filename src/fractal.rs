@@ -95,6 +95,15 @@ impl Fractal {
         }
     }
 
+    // 返回分型的极值
+    pub fn price(&self) -> f64 {
+        if self.ftype == FractalType::Bottom {
+            self.k2.low
+        } else {
+            self.k2.high
+        }
+    }
+
     pub fn is_contain(&self, other: &Fractal) -> bool {
         if self.highest() >= other.highest() && self.lowest() <= other.lowest() {
             true
