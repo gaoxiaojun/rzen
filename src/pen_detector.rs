@@ -62,7 +62,9 @@ use crate::ringbuffer::RingBuffer;
 
 // 关于分型有效性的问题
 // 1. 分型包含
-// 笔的两个端点分型，不能有包含关系，不管是前包含还是后包含
+// 笔的两个端点分型，不能有前包含关系，后包含关系会破坏当下确定的总原则
+// 特例：A-B-C-D, A-B是笔，当BC成笔的时候，AB已经确认
+// 如果后续笔延伸到D的时候，如果D包含B，BD无法确认导致AB要修改
 
 // 上述算法解决的99%的笔问题，但是还有一种情况，无法完美处理
 // 例子:
@@ -100,15 +102,15 @@ pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
 
 pub fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
     // 1.1 共享K线分析，后分型无效
-    //if f1.distance(f2) < 3 && !f1.is_same_type(f2) {
-    //    // 共享K线分型，
-    //    return false;
-    //}
+    /*if f1.distance(f2) < 3 && !f1.is_same_type(f2) {
+        // 共享K线分型，
+        return false;
+    }*/
 
     // 1.2 包含关系分析，无效
-    if f1.is_contain(f2) {
-        return false;
-    }
+    //if f1.is_contain(f2) {
+    //    return false;
+    //}
 
     true
 }
@@ -119,7 +121,6 @@ pub fn is_pen(f1: &Fractal, f2: &Fractal) -> bool {
         && f1.has_enough_distance(f2)
         && f2.lowest() < f1.lowest()
         && !f1.is_contain(f2)
-        && !f2.is_contain(f1)
     {
         return true;
     }
@@ -129,7 +130,6 @@ pub fn is_pen(f1: &Fractal, f2: &Fractal) -> bool {
         && f1.has_enough_distance(f2)
         && f2.highest() > f1.highest()
         && !f1.is_contain(f2)
-        && !f2.is_contain(f1)
     {
         return true;
     }
@@ -337,16 +337,7 @@ impl PenDetector {
                 self.window.pop_back();
                 let c = f.clone();
                 self.window.push(f);
-                //if !is_pen(self.window.get(0).unwrap(), &c) {
-                //    println!("a :{:?} --- b: {:?}", self.window.get(0).unwrap(), &c);
-                //}
-                //debug_assert!(is_pen(self.window.get(0).unwrap(), &c));
-
-                if !is_pen(self.window.get(0).unwrap(), &c) {
-                    return Some(PenEvent::UpdateTo(c));
-                } else {
-                    self.has_pen = false;
-                }
+                return Some(PenEvent::UpdateTo(c));
             }
         }
 
@@ -355,11 +346,11 @@ impl PenDetector {
 
     pub fn on_new_fractal(&mut self, f: Fractal) -> Option<PenEvent> {
         // step1: valid fractal
-        /*if let Some(last) = self.window.get(-1) {
+        if let Some(last) = self.window.get(-1) {
             if !_is_valid_fractal(last, &f) {
                 return None;
             }
-        }*/
+        }
 
         // step2: process fractal
         let len = self.window.len();
