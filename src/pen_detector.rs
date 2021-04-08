@@ -60,6 +60,10 @@ use crate::ringbuffer::RingBuffer;
 // 4.2.1 如果保留B,转state3
 // 4.2.2 如果保留D，emit UpdateTo(D)，转state3
 
+// 关于分型有效性的问题
+// 1. 分型包含
+// 笔的两个端点分型，不能有包含关系，不管是前包含还是后包含
+
 // 上述算法解决的99%的笔问题，但是还有一种情况，无法完美处理
 // 例子:
 // A-B-C-D-E
@@ -114,6 +118,8 @@ pub fn is_pen(f1: &Fractal, f2: &Fractal) -> bool {
         && f2.fractal_type() == FractalType::Bottom
         && f1.has_enough_distance(f2)
         && f2.lowest() < f1.lowest()
+        && !f1.is_contain(f2)
+        && !f2.is_contain(f1)
     {
         return true;
     }
@@ -122,6 +128,8 @@ pub fn is_pen(f1: &Fractal, f2: &Fractal) -> bool {
         && f2.fractal_type() == FractalType::Top
         && f1.has_enough_distance(f2)
         && f2.highest() > f1.highest()
+        && !f1.is_contain(f2)
+        && !f2.is_contain(f1)
     {
         return true;
     }
@@ -141,6 +149,7 @@ pub enum PenEvent {
 pub struct PenDetector {
     window: RingBuffer<Fractal>,
     has_pen: bool,
+    prev_state: u32,
 }
 
 impl PenDetector {
@@ -148,6 +157,7 @@ impl PenDetector {
         Self {
             window: RingBuffer::new(3),
             has_pen: false,
+            prev_state: 0,
         }
     }
 
@@ -170,11 +180,13 @@ impl PenDetector {
     fn state0(&mut self, f: Fractal) -> Option<PenEvent> {
         debug_assert!(self.window.len() == 0 && !self.has_pen);
         self.window.push(f);
+        self.prev_state = 0;
         None
     }
 
     fn state1(&mut self, f: Fractal) -> Option<PenEvent> {
         debug_assert!(self.window.len() == 1 && !self.has_pen);
+        self.prev_state = 1;
         let last = self.window.get(-1).unwrap();
         if last.is_same_type(&f) {
             // 1.1
@@ -203,6 +215,7 @@ impl PenDetector {
         debug_assert!(!self.has_pen);
         debug_assert!(self.window.len() == 2);
 
+        self.prev_state = 2;
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = is_pen(b, &f);
         if bc_is_pen {
@@ -248,10 +261,14 @@ impl PenDetector {
     }
 
     fn state3(&mut self, f: Fractal) -> Option<PenEvent> {
+        if !self.ab_is_pen() {
+            println!(" prev_state = {}", self.prev_state);
+        }
         debug_assert!(self.ab_is_pen());
         debug_assert!(self.has_pen);
         debug_assert!(self.window.len() == 2);
 
+        self.prev_state = 3;
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = is_pen(b, &f);
         if bc_is_pen {
@@ -295,6 +312,7 @@ impl PenDetector {
         debug_assert!(self.has_pen);
         debug_assert!(self.window.len() == 3);
 
+        self.prev_state = 4;
         let c = self.window.get(-1).unwrap();
         if c.is_same_type(&f) {
             // 4.1
@@ -319,7 +337,16 @@ impl PenDetector {
                 self.window.pop_back();
                 let c = f.clone();
                 self.window.push(f);
-                return Some(PenEvent::UpdateTo(c));
+                //if !is_pen(self.window.get(0).unwrap(), &c) {
+                //    println!("a :{:?} --- b: {:?}", self.window.get(0).unwrap(), &c);
+                //}
+                //debug_assert!(is_pen(self.window.get(0).unwrap(), &c));
+
+                if !is_pen(self.window.get(0).unwrap(), &c) {
+                    return Some(PenEvent::UpdateTo(c));
+                } else {
+                    self.has_pen = false;
+                }
             }
         }
 
