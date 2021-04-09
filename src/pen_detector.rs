@@ -401,10 +401,8 @@ mod tests {
     use crate::fractal::Fractal;
     use crate::fractal_detector::FractalDetector;
     use crate::pen_detector::PenDetector;
-    use crate::plot::{draw_bar_tradingview, draw_bar_vue};
-    use crate::time::Time;
-    use chrono::prelude::*;
-    use csv;
+    use crate::plot::*;
+    use crate::test_util::tests::*;
     #[test]
     fn test_is_pen() {
         let k1 = Candle::new(1117, 1052779380000, 1.15642, 1.15627);
@@ -468,7 +466,7 @@ mod tests {
 
     fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {
         let mut fractals: Vec<Fractal> = Vec::new();
-        let bars = load_duka_bar();
+        let bars = load_eurusd_7_days();
         let mut cq = FractalDetector::new();
         for bar in &bars {
             if let Some(f) = cq.on_new_bar(bar) {
@@ -476,54 +474,5 @@ mod tests {
             }
         }
         (bars, fractals)
-    }
-
-    #[allow(dead_code)]
-    fn load_duka_bar() -> Vec<Bar> {
-        // duka download datetime timezone is GMT+8
-        let mut bars: Vec<Bar> = Vec::new();
-        let csv = include_str!("../tests/EURUSD-2021_04_01-2021_04_06.csv");
-        let mut reader = csv::ReaderBuilder::new()
-            .has_headers(true)
-            .from_reader(csv.as_bytes());
-
-        let china_timezone = FixedOffset::east(8 * 3600);
-        for record in reader.records() {
-            let record = record.unwrap();
-            let timestr: &str = AsRef::<str>::as_ref(&record[0]);
-            let dt = NaiveDateTime::parse_from_str(timestr, "%Y-%m-%d %H:%M:%S").unwrap();
-            let china_dt = dt + china_timezone;
-            let datetime: DateTime<Utc> = DateTime::from_utc(china_dt, Utc);
-            let time = datetime.timestamp_millis();
-            let open = AsRef::<str>::as_ref(&record[1]).parse::<f64>().unwrap();
-            let close = AsRef::<str>::as_ref(&record[2]).parse::<f64>().unwrap();
-            let high = AsRef::<str>::as_ref(&record[3]).parse::<f64>().unwrap();
-            let low = AsRef::<str>::as_ref(&record[4]).parse::<f64>().unwrap();
-            let bar = Bar::new(time, open, high, low, close);
-            bars.push(bar);
-        }
-        bars
-    }
-
-    #[allow(dead_code)]
-    fn load_bar() -> Vec<Bar> {
-        let mut bars: Vec<Bar> = Vec::new();
-        let csv = include_str!("../tests/eurusd_10000.csv");
-        let mut reader = csv::ReaderBuilder::new()
-            .has_headers(false)
-            .from_reader(csv.as_bytes());
-
-        for record in reader.records() {
-            let record = record.unwrap();
-            let time: Time = AsRef::<str>::as_ref(&record[0]).parse::<i64>().unwrap();
-            let open = AsRef::<str>::as_ref(&record[1]).parse::<f64>().unwrap();
-            let high = AsRef::<str>::as_ref(&record[2]).parse::<f64>().unwrap();
-            let low = AsRef::<str>::as_ref(&record[3]).parse::<f64>().unwrap();
-            let close = AsRef::<str>::as_ref(&record[4]).parse::<f64>().unwrap();
-            let bar = Bar::new(time, open, high, low, close);
-            bars.push(bar);
-        }
-        assert!(bars.len() == 10000);
-        bars
     }
 }

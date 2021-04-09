@@ -86,7 +86,7 @@ mod tests {
     use super::*;
     use crate::bar::Bar;
     use crate::fractal_detector::FractalDetector;
-    use crate::pen_detector::PenDetector;
+    use crate::pen_detector2::PenDetector;
     use chrono::prelude::*;
     #[test]
     fn test_segment_detector() {

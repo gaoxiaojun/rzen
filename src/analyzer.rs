@@ -1,8 +1,8 @@
 use crate::fractal::Fractal;
 use crate::fractal_detector::FractalDetector;
-use crate::pen_detector::PenDetector;
+use crate::pen_detector2::PenDetector;
 use crate::segment_detector::SegmentDetector;
-use crate::{bar::Bar, pen_detector::PenEvent};
+use crate::{bar::Bar, pen_detector2::PenEvent};
 
 #[derive(Debug)]
 pub struct Analyzer {
@@ -56,41 +56,16 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bar::Bar;
-    use chrono::{DateTime, NaiveDateTime, Utc};
-    use csv;
+    use crate::test_util::tests::*;
 
     #[test]
     fn test_analyzer() {
-        let bars = load_bar2();
+        let bars = load_datetime_bar("../tests/EURUSD-2010_09_01-2010_09_31.csv");
         let mut analyzer = Analyzer::new();
         for bar in &bars {
             analyzer.on_new_bar(bar);
         }
         let count = analyzer.fractals.len();
         println!("count = {}", count);
-    }
-
-    fn load_bar2() -> Vec<Bar> {
-        let mut bars: Vec<Bar> = Vec::new();
-        let csv = include_str!("../tests/EURUSD-2010_09_01-2010_09_31.csv");
-        let mut reader = csv::ReaderBuilder::new()
-            .has_headers(false)
-            .from_reader(csv.as_bytes());
-
-        for record in reader.records() {
-            let record = record.unwrap();
-            let timestr: &str = AsRef::<str>::as_ref(&record[0]);
-            let dt = NaiveDateTime::parse_from_str(timestr, "%Y-%m-%d %H:%M:%S").unwrap();
-            let datetime: DateTime<Utc> = DateTime::from_utc(dt, Utc);
-            let time = datetime.timestamp_millis();
-            let open = AsRef::<str>::as_ref(&record[1]).parse::<f64>().unwrap();
-            let high = AsRef::<str>::as_ref(&record[2]).parse::<f64>().unwrap();
-            let low = AsRef::<str>::as_ref(&record[3]).parse::<f64>().unwrap();
-            let close = AsRef::<str>::as_ref(&record[4]).parse::<f64>().unwrap();
-            let bar = Bar::new(time, open, high, low, close);
-            bars.push(bar);
-        }
-        bars
     }
 }
