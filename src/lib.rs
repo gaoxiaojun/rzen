@@ -8,4 +8,5 @@ pub mod pivot;
 pub mod plot;
 mod ringbuffer;
 pub mod segment_detector;
+pub(crate) mod test_util;
 pub mod time;
