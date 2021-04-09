@@ -101,16 +101,6 @@ pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
     }
 }
 
-pub fn _is_valid_fractal(f1: &Fractal, f2: &Fractal) -> bool {
-    // 1.1 共享K线分析，后分型无效
-    if f1.distance(f2) < 3 && !f1.is_same_type(f2) {
-        // 共享K线分型，
-        return false;
-    }
-
-    true
-}
-
 pub fn is_pen(f1: &Fractal, f2: &Fractal) -> bool {
     if f1.fractal_type() == FractalType::Top
         && f2.fractal_type() == FractalType::Bottom
