@@ -76,6 +76,7 @@ impl Candle {
                     current.low = f64::max(bar.low, current.low);
                 }
             }
+            //current.close = bar.close;
             true
         } else {
             false

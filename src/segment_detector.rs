@@ -41,9 +41,6 @@ impl SegmentDetector {
             return None;
         }
 
-        // temp debug
-        return None;
-
         // 为了防止今后修改上述逻辑
         let length = pens.len();
         let p1_index = length - 5;
@@ -87,14 +84,13 @@ impl SegmentDetector {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::bar::Bar;
     use crate::fractal_detector::FractalDetector;
-    use crate::pen_detector2::PenDetector;
+    use crate::pen_detector::PenDetector;
     use crate::test_util::tests::*;
 
     #[test]
     fn test_segment_detector() {
-        let bars = load_datetime_bar("../tests/EURUSD-2010_09_01-2010_09_31.csv");
+        let bars = load_eurusd_2021();
         let mut fd = FractalDetector::new();
         let mut pd = PenDetector::new();
         let mut sd = SegmentDetector::new();

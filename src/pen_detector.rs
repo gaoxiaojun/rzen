@@ -151,7 +151,6 @@ pub enum PenDirection {
 pub struct PenDetector {
     window: RingBuffer<Fractal>,
     has_pen: bool,
-    prev_state: u32,
 }
 
 impl PenDetector {
@@ -159,7 +158,6 @@ impl PenDetector {
         Self {
             window: RingBuffer::new(3),
             has_pen: false,
-            prev_state: 0,
         }
     }
 
@@ -179,33 +177,14 @@ impl PenDetector {
         self._is_pen(0)
     }
 
-    fn pen_direction(&self) -> Option<PenDirection> {
-        if self.has_pen {
-            let a = self.window.get(0).unwrap();
-            let b = self.window.get(1).unwrap();
-            let direction = {
-                if b.price() > a.price() {
-                    Some(PenDirection::Up)
-                } else {
-                    Some(PenDirection::Down)
-                }
-            };
-            direction
-        } else {
-            None
-        }
-    }
-
     fn state0(&mut self, f: Fractal) -> Option<PenEvent> {
         debug_assert!(self.window.len() == 0 && !self.has_pen);
         self.window.push(f);
-        self.prev_state = 0;
         None
     }
 
     fn state1(&mut self, f: Fractal) -> Option<PenEvent> {
         debug_assert!(self.window.len() == 1 && !self.has_pen);
-        self.prev_state = 1;
         let last = self.window.get(-1).unwrap();
         if last.is_same_type(&f) {
             // 1.1
@@ -234,7 +213,6 @@ impl PenDetector {
         debug_assert!(!self.has_pen);
         debug_assert!(self.window.len() == 2);
 
-        self.prev_state = 2;
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = is_pen(b, &f);
         if bc_is_pen {
@@ -280,14 +258,10 @@ impl PenDetector {
     }
 
     fn state3(&mut self, f: Fractal) -> Option<PenEvent> {
-        if !self.ab_is_pen() {
-            println!(" prev_state = {}", self.prev_state);
-        }
         debug_assert!(self.ab_is_pen());
         debug_assert!(self.has_pen);
         debug_assert!(self.window.len() == 2);
 
-        self.prev_state = 3;
         let b = self.window.get(-1).unwrap();
         let bc_is_pen = is_pen(b, &f);
         if bc_is_pen {
@@ -331,7 +305,6 @@ impl PenDetector {
         debug_assert!(self.has_pen);
         debug_assert!(self.window.len() == 3);
 
-        self.prev_state = 4;
         let c = self.window.get(-1).unwrap();
         if c.is_same_type(&f) {
             // 4.1
@@ -365,19 +338,6 @@ impl PenDetector {
     }
 
     pub fn on_new_fractal(&mut self, f: Fractal) -> Option<PenEvent> {
-        // step1: valid fractal
-        /*if let Some(last) = self.window.get(-1) {
-            let direction = self.pen_direction();
-            if (f.fractal_type() == FractalType::Bottom && direction == Some(PenDirection::Up))
-                || (f.fractal_type() == FractalType::Top && direction == Some(PenDirection::Down))
-            {
-                if !_is_valid_fractal(last, &f) {
-                    return None;
-                }
-            }
-        }*/
-
-        // step2: process fractal
         let len = self.window.len();
         let is_pen = self.has_pen;
 
@@ -406,13 +366,13 @@ mod tests {
     use crate::test_util::tests::*;
     #[test]
     fn test_is_pen() {
-        let k1 = Candle::new(1117, 1052779380000, 1.15642, 1.15642, 1.15627, 1.15627);
-        let k2 = Candle::new(1118, 1052779380000, 1.15645, 1.15645, 1.15634, 1.15634);
-        let k3 = Candle::new(1119, 1052779500000, 1.15638, 1.15638, 1.1562, 1.1562);
+        let k1 = Candle::new(1117, 1052779380000, 1.15642, 1.15627);
+        let k2 = Candle::new(1118, 1052779380000, 1.15645, 1.15634);
+        let k3 = Candle::new(1119, 1052779500000, 1.15638, 1.1562);
         let f1 = Fractal::new(k1, k2, k3);
-        let k4 = Candle::new(1131, 1052780640000, 1.15604, 1.15604, 1.1559, 1.1559);
-        let k5 = Candle::new(1132, 1052780820000, 1.15602, 1.15602, 1.15576, 1.15576);
-        let k6 = Candle::new(1133, 1052780940000, 1.15624, 1.15624, 1.15599, 1.15599);
+        let k4 = Candle::new(1131, 1052780640000, 1.15604, 1.1559);
+        let k5 = Candle::new(1132, 1052780820000, 1.15602, 1.15576);
+        let k6 = Candle::new(1133, 1052780940000, 1.15624, 1.15599);
         let f2 = Fractal::new(k4, k5, k6);
         let has_enough_distance = f1.has_enough_distance(&f2);
         assert!(has_enough_distance);
@@ -428,7 +388,7 @@ mod tests {
     }
     #[test]
     fn test_pen_detector() {
-        let (bars, candles, fractals) = load_fractal();
+        let (bars, fractals) = load_fractal();
         println!("total fractals:{}", fractals.len());
 
         let mut fq = PenDetector::new();
@@ -461,20 +421,18 @@ mod tests {
 
         println!("pen_count = {}, pen_update ={}", pen_count, pen_update);
         let segments: Vec<Fractal> = Vec::new();
-        //draw_candle_vue(&candles);
-        draw_candle_tradingview(&candles, &pens, &&segments);
+        draw_bar_tradingview(&bars, &pens, &&segments);
     }
 
-    fn load_fractal() -> (Vec<Bar>, Vec<Candle>, Vec<Fractal>) {
+    fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {
         let mut fractals: Vec<Fractal> = Vec::new();
-        let bars = load_eurusd_7_days();
+        let bars = load_eurusd_2021();
         let mut cq = FractalDetector::new();
         for bar in &bars {
             if let Some(f) = cq.on_new_bar(bar) {
                 fractals.push(f);
             }
         }
-        let candles = cq.all_candles().clone();
-        (bars, candles, fractals)
+        (bars, fractals)
     }
 }

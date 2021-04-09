@@ -80,7 +80,7 @@
             },
         });
         // set data
-        candlestickSeries.setData(Data.candle);
+        candlestickSeries.setData(Data.Bar);
 
         const lineSeries = chart.addLineSeries({
             lineWidth: 1,
@@ -89,7 +89,7 @@
                 precision: 5,
             },
         });
-        lineSeries.setData(Data.pen);
+        lineSeries.setData(Data.Pen);
 
         const SegmentSeries = chart.addLineSeries({
             color: '#f48fb1',
@@ -99,6 +99,6 @@
                 precision: 5,
             },
         });
-        SegmentSeries.setData(Data.segment);
+        SegmentSeries.setData(Data.Segment);
     </script>
 </body>

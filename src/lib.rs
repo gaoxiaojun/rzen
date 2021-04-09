@@ -4,7 +4,7 @@ mod candle;
 pub mod fractal;
 mod fractal_detector;
 //mod pen_detector;
-pub mod pen_detector2;
+pub mod pen_detector;
 pub mod pivot;
 pub mod plot;
 mod ringbuffer;

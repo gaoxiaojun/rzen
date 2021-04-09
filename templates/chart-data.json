@@ -1,4 +1,4 @@
-Data ={ candle: [
+Data ={ Bar: [
         { time: 1617264000, open: 1.17274, high: 1.17288, low: 1.17272, close: 1.17287
         },
         { time: 1617264060, open: 1.17287, high: 1.17287, low: 1.17279, close: 1.17285
@@ -14,7 +14,7 @@ Data ={ candle: [
         { time: 1617264360, open: 1.1725, high: 1.1725, low: 1.17218, close: 1.1722
         },
     ],
-    pen : [
+    Pen : [
         { time: 1617264420, value: 1.17215
         },
         { time: 1617264960, value: 1.17272
@@ -36,7 +36,7 @@ Data ={ candle: [
         { time: 1617269940, value: 1.17321
         },
     ],
-    segment: [
+    Segment: [
         { time: 1617264420, value: 1.17215
         },
         { time: 1617268140, value: 1.17277
