@@ -13,7 +13,7 @@ pub enum PenEvent {
 pub struct PenDetector {
     window: VecDeque<Fractal>,
     has_pen: bool,
-    prev_state: u32,
+    prev_state: u32, //only for debug
 }
 
 impl PenDetector {
@@ -134,14 +134,9 @@ impl PenDetector {
     }
 
     fn state3(&mut self, f: Fractal) -> Option<PenEvent> {
-        if !self.ab_is_pen() {
-            println!(" prev_state = {}", self.prev_state);
-        }
         debug_assert!(self.ab_is_pen());
         debug_assert!(self.has_pen);
-        debug_assert!(self.window.len() == 2);
 
-        self.prev_state = 3;
         let b = self.get(-1).unwrap();
         let bc_is_pen = is_pen_without_f2_contain_rule(b, &f);
         if bc_is_pen {
@@ -218,11 +213,12 @@ impl PenDetector {
         let is_pen = self.has_pen;
 
         match (is_pen, len) {
+            // 查找第一笔
             (false, 0) => self.state0(f),
             (false, 1) => self.state1(f),
             (false, 2) => self.state2(f),
-            (true, 2) => self.state3(f),
-            (true, 3) => self.state4(f),
+            // 笔存在
+            (true, _) => self.state3(f),
             (_, _) => {
                 unreachable!()
             }

@@ -41,6 +41,9 @@ impl SegmentDetector {
             return None;
         }
 
+        // temp debug
+        return None;
+
         // 为了防止今后修改上述逻辑
         let length = pens.len();
         let p1_index = length - 5;
@@ -87,10 +90,11 @@ mod tests {
     use crate::bar::Bar;
     use crate::fractal_detector::FractalDetector;
     use crate::pen_detector2::PenDetector;
-    use chrono::prelude::*;
+    use crate::test_util::tests::*;
+
     #[test]
     fn test_segment_detector() {
-        let bars = load_bar2();
+        let bars = load_datetime_bar("../tests/EURUSD-2010_09_01-2010_09_31.csv");
         let mut fd = FractalDetector::new();
         let mut pd = PenDetector::new();
         let mut sd = SegmentDetector::new();
@@ -103,28 +107,5 @@ mod tests {
                 }
             }
         }
-    }
-
-    fn load_bar2() -> Vec<Bar> {
-        let mut bars: Vec<Bar> = Vec::new();
-        let csv = include_str!("../tests/EURUSD-2010_09_01-2010_09_31.csv");
-        let mut reader = csv::ReaderBuilder::new()
-            .has_headers(false)
-            .from_reader(csv.as_bytes());
-
-        for record in reader.records() {
-            let record = record.unwrap();
-            let timestr: &str = AsRef::<str>::as_ref(&record[0]);
-            let dt = NaiveDateTime::parse_from_str(timestr, "%Y-%m-%d %H:%M:%S").unwrap();
-            let datetime: DateTime<Utc> = DateTime::from_utc(dt, Utc);
-            let time = datetime.timestamp_millis();
-            let open = AsRef::<str>::as_ref(&record[1]).parse::<f64>().unwrap();
-            let high = AsRef::<str>::as_ref(&record[2]).parse::<f64>().unwrap();
-            let low = AsRef::<str>::as_ref(&record[3]).parse::<f64>().unwrap();
-            let close = AsRef::<str>::as_ref(&record[4]).parse::<f64>().unwrap();
-            let bar = Bar::new(time, open, high, low, close);
-            bars.push(bar);
-        }
-        bars
     }
 }
