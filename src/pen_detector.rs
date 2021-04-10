@@ -356,13 +356,13 @@ mod tests {
     use crate::test_util::tests::*;
     #[test]
     fn test_is_pen() {
-        let k1 = Candle::new(1117, 1052779380000, 1.15642, 1.15627);
-        let k2 = Candle::new(1118, 1052779380000, 1.15645, 1.15634);
-        let k3 = Candle::new(1119, 1052779500000, 1.15638, 1.1562);
+        let k1 = Candle::new(1117, 1052779380000, 1.15642, 1.15642, 1.15627, 1.15627);
+        let k2 = Candle::new(1118, 1052779380000, 1.15645, 1.15645, 1.15634, 1.15634);
+        let k3 = Candle::new(1119, 1052779500000, 1.15638, 1.15638, 1.1562, 1.1562);
         let f1 = Fractal::new(k1, k2, k3);
-        let k4 = Candle::new(1131, 1052780640000, 1.15604, 1.1559);
-        let k5 = Candle::new(1132, 1052780820000, 1.15602, 1.15576);
-        let k6 = Candle::new(1133, 1052780940000, 1.15624, 1.15599);
+        let k4 = Candle::new(1131, 1052780640000, 1.15604, 1.15604, 1.1559, 1.1559);
+        let k5 = Candle::new(1132, 1052780820000, 1.15602, 1.15602, 1.15576, 1.15576);
+        let k6 = Candle::new(1133, 1052780940000, 1.15624, 1.15624, 1.15599, 1.15599);
         let f2 = Fractal::new(k4, k5, k6);
         let has_enough_distance = f1.has_enough_distance(&f2);
         assert!(has_enough_distance);
@@ -378,7 +378,7 @@ mod tests {
     }
     #[test]
     fn test_pen_detector() {
-        let (bars, fractals) = load_fractal();
+        let (bars, candles, fractals) = load_fractal();
         println!("total fractals:{}", fractals.len());
 
         let mut fq = PenDetector::new();
@@ -411,10 +411,10 @@ mod tests {
 
         println!("pen_count = {}, pen_update ={}", pen_count, pen_update);
         let segments: Vec<Fractal> = Vec::new();
-        draw_bar_tradingview(&bars, &pens, &&segments);
+        draw_bar_tradingview(&candles, &pens, &&segments);
     }
 
-    fn load_fractal() -> (Vec<Bar>, Vec<Fractal>) {
+    fn load_fractal() -> (Vec<Bar>, Vec<Bar>, Vec<Fractal>) {
         let mut fractals: Vec<Fractal> = Vec::new();
         let bars = load_eurusd_2021();
         let mut cq = FractalDetector::new();
@@ -423,6 +423,6 @@ mod tests {
                 fractals.push(f);
             }
         }
-        (bars, fractals)
+        (bars, cq.all_candles().clone(), fractals)
     }
 }
