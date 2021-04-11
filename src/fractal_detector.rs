@@ -6,7 +6,7 @@ use crate::ringbuffer::RingBuffer;
 pub struct FractalDetector {
     window: RingBuffer<Candle>,
     next_index: u64,
-    candles: Vec<Bar>,
+    candles: Option<Vec<Bar>>,
 }
 
 impl FractalDetector {
@@ -14,20 +14,38 @@ impl FractalDetector {
         Self {
             window: RingBuffer::new(3),
             next_index: 0,
-            candles: Vec::new(),
+            candles: None,
         }
     }
 
-    pub fn all_candles(&self) -> &Vec<Bar> {
-        &self.candles
+    #[allow(dead_code)]
+    pub fn with_candles() -> Self {
+        Self {
+            window: RingBuffer::new(3),
+            next_index: 0,
+            candles: Some(Vec::new()),
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn get_candles(&self) -> Option<&Vec<Bar>> {
+        self.candles.as_ref()
+    }
+
+    fn notify(&mut self) {
+        if let Some(container) = self.candles.as_mut() {
+            if self.window.len() > 0 {
+                let last = self.window.get(-1).unwrap();
+                container.push(last.bar.clone());
+            }
+        }
     }
 
     fn add_candle(&mut self, bar: &Bar) {
+        self.notify();
         let c = Candle::from_bar(self.next_index, bar);
-        let b = c.bar.clone();
         self.next_index += 1;
         self.window.push(c);
-        self.candles.push(b);
     }
 
     // 检查是否为顶底分型
@@ -108,7 +126,7 @@ impl FractalDetector {
 }
 
 impl std::fmt::Debug for FractalDetector {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("FractalDetector")
             .field("window", &self.window)
             .field("next_index", &self.next_index)

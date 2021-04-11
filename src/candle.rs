@@ -16,6 +16,7 @@ pub struct Candle {
 }
 
 impl Candle {
+    #[allow(dead_code)]
     pub(crate) fn new(index: u64, time: Time, open: f64, high: f64, low: f64, close: f64) -> Self {
         Self {
             index,

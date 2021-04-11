@@ -377,8 +377,8 @@ mod tests {
         assert!(is_pen);
     }
     #[test]
-    fn test_pen_detector() {
-        let (bars, candles, fractals) = load_fractal();
+    fn test_pen_detector_with_candle() {
+        let (_, candles, fractals) = load_fractal();
         println!("total fractals:{}", fractals.len());
 
         let mut fq = PenDetector::new();
@@ -417,12 +417,16 @@ mod tests {
     fn load_fractal() -> (Vec<Bar>, Vec<Bar>, Vec<Fractal>) {
         let mut fractals: Vec<Fractal> = Vec::new();
         let bars = load_eurusd_2021();
-        let mut cq = FractalDetector::new();
+
+        //let observer = |bar: &Bar| all_candles.push(bar.clone());
+        let mut cq = FractalDetector::with_candles();
+
         for bar in &bars {
             if let Some(f) = cq.on_new_bar(bar) {
                 fractals.push(f);
             }
         }
-        (bars, cq.all_candles().clone(), fractals)
+
+        (bars, cq.get_candles().unwrap().clone(), fractals)
     }
 }
