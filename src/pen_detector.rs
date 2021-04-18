@@ -101,12 +101,14 @@ pub fn _merge_same_type(f1: &Fractal, f2: &Fractal) -> MergeAction {
     }
 }
 
+// TODO: 后分型包含前分型的情况需要处理
 pub fn is_pen(f1: &Fractal, f2: &Fractal) -> bool {
     if f1.fractal_type() == FractalType::Top
         && f2.fractal_type() == FractalType::Bottom
         && f1.has_enough_distance(f2)
         && f2.lowest() < f1.lowest()
         && !f1.is_contain(f2)
+    //&& !f2.is_contain(f1)
     {
         return true;
     }
@@ -116,6 +118,7 @@ pub fn is_pen(f1: &Fractal, f2: &Fractal) -> bool {
         && f1.has_enough_distance(f2)
         && f2.highest() > f1.highest()
         && !f1.is_contain(f2)
+    //&& !f2.is_contain(f1)
     {
         return true;
     }
@@ -378,7 +381,7 @@ mod tests {
     }
     #[test]
     fn test_pen_detector_with_candle() {
-        let (_, candles, fractals) = load_fractal();
+        let (bars, candles, fractals) = load_fractal();
         println!("total fractals:{}", fractals.len());
 
         let mut fq = PenDetector::new();

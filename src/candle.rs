@@ -43,7 +43,7 @@ impl Candle {
 
     // 检测并处理包含关系
     // 返回值: true:存在包含关系， false:没有包含关系
-    pub fn check_contain(direction: Direction, current: &mut Candle, bar: &Bar) -> bool {
+    pub fn merge(direction: Direction, current: &mut Candle, bar: &Bar) -> bool {
         // current,bar是否有包含关系
         if (current.bar.high >= bar.high && current.bar.low <= bar.low)
             || (current.bar.high <= bar.high && current.bar.low >= bar.low)
@@ -64,6 +64,8 @@ impl Candle {
                     }
                     current.bar.high = f64::min(bar.high, current.bar.high);
                     current.bar.low = f64::min(bar.low, current.bar.low);
+                    current.bar.open = current.bar.high;
+                    current.bar.close = current.bar.low;
                 }
 
                 Direction::Up => {
@@ -78,9 +80,11 @@ impl Candle {
                     }
                     current.bar.high = f64::max(bar.high, current.bar.high);
                     current.bar.low = f64::max(bar.low, current.bar.low);
+                    current.bar.close = current.bar.high;
+                    current.bar.open = current.bar.low;
                 }
             }
-            current.bar.close = bar.close;
+            //current.bar.close = bar.close;
             true
         } else {
             false
@@ -96,7 +100,7 @@ mod tests {
         let c1 = Candle::new(1, 10000, 100.0, 100.0, 50.0, 50.0);
         let mut c2 = Candle::new(11, 10001, 120.0, 120.0, 90.0, 90.0);
         let direction = Candle::check_direction(&c1, &c2);
-        let is_contained = Candle::check_contain(direction, &mut c2, &bar);
+        let is_contained = Candle::merge(direction, &mut c2, &bar);
         assert_eq!(is_contained, true);
         assert_eq!(direction, Direction::Up);
         assert_eq!(c2.bar.high, 120.0);
@@ -114,15 +118,67 @@ mod tests {
         let b1 = Bar::new(1052692740000, 1.15166, 1.15176, 1.15156, 1.15176);
 
         let mut current = c1.clone();
-        let is_contain = Candle::check_contain(Direction::Up, &mut current, &b1);
+        let is_contain = Candle::merge(Direction::Up, &mut current, &b1);
         assert!(!is_contain);
 
         let mut con = c1.clone();
 
         let b2 = Bar::new(1052692740000, 1.15636, 1.15639, 1.15635, 1.15638);
-        let is_contain = Candle::check_contain(Direction::Up, &mut con, &b2);
+        let is_contain = Candle::merge(Direction::Up, &mut con, &b2);
         assert!(is_contain);
         assert!(con.bar.high == 1.15642);
         assert!(con.bar.low == 1.15635);
+    }
+    #[test]
+    fn test_candle_merge() {
+        // eurusd 2021-03-16 3:43-3:59
+        let b1 = Bar::new(1615866240000, 1.1926, 1.1927, 1.19257, 1.19269);
+        let b2 = Bar::new(1615866300000, 1.1927, 1.19276, 1.19269, 1.19276);
+        let b3 = Bar::new(1615866360000, 1.19275, 1.19276, 1.19273, 1.19273);
+        let b4 = Bar::new(1615866420000, 1.19274, 1.19275, 1.19268, 1.19273);
+        let b5 = Bar::new(1615866480000, 1.19272, 1.19272, 1.19264, 1.19264);
+        let b6 = Bar::new(1615866540000, 1.19265, 1.19274, 1.19264, 1.19274);
+        let b7 = Bar::new(1615866600000, 1.19273, 1.19284, 1.1927, 1.19283);
+        let b8 = Bar::new(1615866660000, 1.19282, 1.19282, 1.1926, 1.19265);
+        let b9 = Bar::new(1615866720000, 1.19264, 1.19269, 1.1926, 1.19264);
+        let b10 = Bar::new(1615866780000, 1.19264, 1.19269, 1.19263, 1.19267);
+        let b11 = Bar::new(1615866840000, 1.19267, 1.19274, 1.19265, 1.19274);
+        let b12 = Bar::new(1615866900000, 1.19275, 1.19284, 1.19275, 1.19284);
+        let b13 = Bar::new(1615866960000, 1.19284, 1.19286, 1.19281, 1.19284);
+        let b14 = Bar::new(1615867020000, 1.19284, 1.19285, 1.19277, 1.1928);
+        let b15 = Bar::new(1615867080000, 1.19278, 1.19288, 1.19278, 1.19288);
+        let b16 = Bar::new(1615867140000, 1.19289, 1.19302, 1.19288, 1.19298);
+
+        let mut bars: Vec<Bar> = Vec::new();
+        bars.push(b3);
+        bars.push(b4);
+        bars.push(b5);
+        bars.push(b6);
+        bars.push(b7);
+        bars.push(b8);
+        bars.push(b9);
+        bars.push(b10);
+        bars.push(b11);
+        bars.push(b12);
+        bars.push(b13);
+        bars.push(b14);
+        bars.push(b15);
+        bars.push(b16);
+
+        let mut candles: Vec<Candle> = Vec::new();
+        let mut index = 0;
+        let c1 = Candle::from_bar(index, &b1);
+        index += 1;
+        let mut c2 = Candle::from_bar(index, &b2);
+        index += 1;
+
+        let dir = Candle::check_direction(&c1, &c2);
+        let mut current = &mut c2;
+        for bar in &bars {
+            let is_merged = Candle::merge(dir, current, bar);
+            if !is_merged {
+                candles.push(current.clone());
+            }
+        }
     }
 }

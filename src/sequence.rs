@@ -1,5 +1,8 @@
 use crate::time::Time;
 
+// 向上的线段采用向上合并
+// 向下的线段采用向下合并
+
 #[derive(Debug)]
 pub struct Seq {
     from_time: Time,

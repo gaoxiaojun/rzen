@@ -69,7 +69,7 @@ impl FractalDetector {
 
         let current = self.window.get_mut(-1).unwrap();
 
-        Candle::check_contain(direction, current, bar)
+        Candle::merge(direction, current, bar)
     }
 
     // 处理K线包含关系，更新内部缓冲区，检测分型
@@ -138,6 +138,8 @@ mod tests {
     use super::*;
     use crate::candle::Direction;
     use crate::fractal::FractalType;
+    use crate::plot::*;
+    use crate::test_util::tests::*;
     #[test]
     fn test_detector() {
         let b1 = Bar::new(1, 6.0, 8.0, 6.0, 8.0);
@@ -187,5 +189,35 @@ mod tests {
         assert!(f2.is_some());
         assert!(f2.as_ref().unwrap().fractal_type() == FractalType::Bottom);
         assert!(f2.as_ref().unwrap().lowest() == 1.15576);
+    }
+
+    // eurusd 2021-3-16 3:41 - 3:58的数据来测试
+    #[test]
+    fn test_candle_merge() {
+        let csv = include_str!("../tests/candle_test_eu20210316T0343-0359.csv");
+        let bars = load_datetime_bar(&csv);
+        let mut i = 1;
+        for bar in &bars {
+            println!(
+                "let b{}=Bar::new({},{},{},{},{});",
+                i, bar.time, bar.open, bar.high, bar.low, bar.close
+            );
+            i += 1;
+        }
+        let mut fd = FractalDetector::with_candles();
+        for bar in &bars {
+            let e = fd.on_new_bar(bar);
+        }
+
+        let candles = fd.candles.unwrap();
+        let pens: Vec<Fractal> = Vec::new();
+        let segments: Vec<Fractal> = Vec::new();
+        for c in &candles {
+            println!(
+                "open= {} high={}, low={} close={}",
+                c.open, c.high, c.low, c.close
+            );
+        }
+        draw_bar_tradingview(&candles, &pens, &&segments);
     }
 }

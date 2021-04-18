@@ -3,7 +3,6 @@ pub mod bar;
 mod candle;
 pub mod fractal;
 mod fractal_detector;
-//mod pen_detector;
 //pub mod emitter;
 pub mod pen_detector;
 pub mod pivot;
