@@ -31,23 +31,7 @@ impl Analyzer {
         if let Some(f) = fractal {
             let pe = self.pd.on_new_fractal(f);
             if let Some(pen_event) = pe {
-                match pen_event {
-                    PenEvent::First(a, b) => {
-                        self.fractals.push(a);
-                        self.fractals.push(b);
-                    }
-                    PenEvent::New(a) => {
-                        self.fractals.push(a);
-                        // 线段检测算法只关注已经完成的笔
-                        // PenEvent::New代表原有笔已经终结
-                        self.sd.on_pen_event(&self.fractals);
-                    }
-
-                    PenEvent::UpdateTo(a) => {
-                        self.fractals.pop();
-                        self.fractals.push(a);
-                    }
-                }
+                self.sd.on_pen_event(pen_event);
             }
         }
     }
@@ -60,7 +44,7 @@ mod tests {
 
     #[test]
     fn test_analyzer() {
-        let bars = load_datetime_bar("../tests/EURUSD-2010_09_01-2010_09_31.csv");
+        let bars = load_eurusd_2021();
         let mut analyzer = Analyzer::new();
         for bar in &bars {
             analyzer.on_new_bar(bar);

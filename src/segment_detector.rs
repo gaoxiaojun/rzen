@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{fractal::Fractal, ringbuffer::RingBuffer, sequence::Seq};
+use crate::{fractal::Fractal, pen_detector::PenEvent, ringbuffer::RingBuffer, sequence::Seq};
 
 // 三笔重叠判断算法
 // 三笔4个端点必须：
@@ -56,18 +56,27 @@ pub type FractalVecIndex = usize;
 
 #[derive(Debug)]
 pub struct SegmentDetector {
+    fractals: VecDeque<Fractal>,
     segments: Vec<FractalVecIndex>,
     direction: Option<SegmentDirection>,
     last: Option<(FractalVecIndex, FractalVecIndex)>,
+
+    // 假设的线段终结点
     current: FractalVecIndex,
+    // 对应假设终结点的前高(低)点，用于特征分型第一元素的计算
     prev: FractalVecIndex,
+
+    // 对应线段终结第一种情况，保存3个分型判断即可
     window1: RingBuffer<Fractal>,
+
+    // 对应线段终结第二种情况，
     window2: VecDeque<Fractal>,
 }
 
 impl SegmentDetector {
     pub fn new() -> Self {
         Self {
+            fractals: VecDeque::new(),
             segments: Vec::new(),
             direction: None,
             last: None,
@@ -94,7 +103,11 @@ impl SegmentDetector {
         }
     }
 
-    fn reset_state(&mut self) {}
+    fn reset_state(&mut self, p2: usize, p4: usize) {
+        self.current = p4;
+        self.prev = p2;
+    }
+
     fn is_segment(
         p1: &Fractal,
         p2: &Fractal,
@@ -118,77 +131,141 @@ impl SegmentDetector {
         direction
     }
 
+    fn is_segment_termination(&mut self) {}
+    // 判断第一个线段的时候，条件约束较严格
+    fn is_first_segment(
+        p1: &Fractal,
+        p2: &Fractal,
+        p3: &Fractal,
+        p4: &Fractal,
+    ) -> Option<SegmentDirection> {
+        let direction_up = p1.price() < p2.price()
+            && p2.price() > p3.price()
+            && p3.price() > p1.price()
+            && p4.price() > p3.price()
+            && p4.price() > p2.price();
+        let direction_down = p1.price() > p2.price()
+            && p2.price() < p3.price()
+            && p3.price() < p1.price()
+            && p4.price() < p3.price()
+            && p4.price() < p2.price();
+
+        let direction = {
+            match (direction_up, direction_down) {
+                (true, false) => Some(SegmentDirection::Up),
+                (false, true) => Some(SegmentDirection::Down),
+                (_, _) => None,
+            }
+        };
+        direction
+    }
+
     fn state0(&self) {}
 
-    pub fn on_pen_event(&mut self, pens: &Vec<Fractal>) -> Option<SegmentEvent> {
-        // pens数组是先保存最新的笔，然后调用本方法，所以至少需要5个端点
-        if pens.len() < 5 {
+    fn on_lower_low(&mut self, new_end_point: usize) {}
+
+    fn on_higher_high(&mut self, new_end_point: usize) {
+        self.reset_state(self.current, new_end_point)
+    }
+
+    pub fn on_pen_event(&mut self, pen_event: PenEvent) -> Option<SegmentEvent> {
+        match pen_event {
+            PenEvent::First(a, b) => {
+                self.fractals.push_back(a);
+                self.fractals.push_back(b);
+                None
+            }
+
+            PenEvent::New(a) => {
+                // PenEvent::New代表原有笔已经终结,但是该新笔后续还可能延伸
+                // 线段检测算法只关注已经完成的笔
+                let event = self.process();
+                self.fractals.push_back(a);
+                event
+            }
+
+            PenEvent::UpdateTo(a) => {
+                self.fractals.pop_back();
+                self.fractals.push_back(a);
+                None
+            }
+        }
+    }
+
+    fn get(&self, index: isize) -> Option<&Fractal> {
+        if index >= 0 {
+            self.fractals.get(index as usize)
+        } else {
+            self.fractals
+                .get((self.fractals.len() as isize + index) as usize)
+        }
+    }
+
+    fn get_index(&self, index: isize) -> usize {
+        debug_assert!(
+            (index > 0 && index < self.fractals.len() as isize)
+                || (index < 0
+                    && ((self.fractals.len() as isize + index) as usize) < self.fractals.len())
+        );
+        if index >= 0 {
+            index as usize
+        } else {
+            (self.fractals.len() as isize + index) as usize
+        }
+    }
+
+    pub fn process(&mut self) -> Option<SegmentEvent> {
+        // pens数组是先保存最新的笔，然后调用本方法，所以至少需要4个端点
+        if self.fractals.len() < 5 {
             return None;
         }
 
-        // 为了防止今后修改上述逻辑
-        let length = pens.len();
-        let p1_index = length - 5;
-        let p2_index = length - 4;
-        let p3_index = length - 3;
-        let p4_index = length - 2;
+        if self.direction.is_none() {
+            // 判断第一个线段
+            // 判断方式通过4个分型的滑动窗口来判断
+            let p1 = self.get(-4).unwrap();
+            let p2 = self.get(-3).unwrap();
+            let p3 = self.get(-2).unwrap();
+            let p4 = self.get(-1).unwrap();
 
-        if !self.direction.is_none() {
-            let p1 = &pens[p1_index];
-            let p2 = &pens[p2_index];
-            let p3 = &pens[p3_index];
-            let p4 = &pens[p4_index];
-
-            self.direction = SegmentDetector::is_segment(p1, p2, p3, p4);
+            self.direction = SegmentDetector::is_first_segment(p1, p2, p3, p4);
 
             if self.direction.is_some() {
-                self.segments.push(p4_index);
+                /*self.segments.push(p4_index);
                 self.segments.push(p1_index);
                 self.last = Some((p2_index, p3_index));
-                return Some(SegmentEvent::New(p1_index, p4_index));
+                self.reset_state(p2_index, p4_index);*/
+                let len = self.fractals.len();
+                self.reset_state(len - 3, len - 1);
+                println!("Found First Segment");
+                return Some(SegmentEvent::New(len - 4, len - 1));
             } else {
+                self.fractals.pop_front();
+                println!("Poped ..");
                 return None;
             }
         } else {
-            None
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::pen_detector::PenDetector;
-    use crate::test_util::tests::*;
-    use crate::{fractal_detector::FractalDetector, pen_detector::PenEvent};
-
-    #[test]
-    fn test_segment_detector() {
-        let bars = load_eurusd_2021();
-        let mut fd = FractalDetector::new();
-        let mut pd = PenDetector::new();
-        let mut sd = SegmentDetector::new();
-        let mut fvec: Vec<Fractal> = Vec::new();
-        for bar in &bars {
-            let fractal = fd.on_new_bar(bar);
-            if let Some(f) = fractal {
-                let pe = pd.on_new_fractal(f);
-                if let Some(pen_event) = pe {
-                    match pen_event {
-                        PenEvent::First(a, b) => {
-                            fvec.push(a);
-                            fvec.push(b);
-                        }
-                        PenEvent::New(a) => {
-                            fvec.push(a);
-                            // 线段检测算法只关注已经完成的笔
-                            // PenEvent::New代表原有笔已经终结
-                            sd.on_pen_event(&fvec);
-                        }
-                        _ => {}
+            // 开始常规线段处理
+            debug_assert!(self.direction.is_some());
+            let direction = self.direction.unwrap();
+            let last_pen = self.get(-1).unwrap();
+            let length = self.fractals.len();
+            match direction {
+                SegmentDirection::Up => {
+                    if last_pen.price() > self.fractals[self.current].price() {
+                        // 创新高，假设该点是线段终结点
+                        self.on_higher_high(length - 2);
+                    }
+                }
+                SegmentDirection::Down => {
+                    if last_pen.price() < self.fractals[self.current].price() {
+                        // 创新低，假设该点是线段终结点
+                        self.on_lower_low(length - 2);
                     }
                 }
             }
+
+            None
         }
     }
 }
