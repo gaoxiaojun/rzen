@@ -41,6 +41,7 @@ impl FractalDetector {
         }
     }
 
+    // 当确定当前Bar与前Candle不存在合并关系的时候，该方法被调用
     fn add_candle(&mut self, bar: &Bar) {
         self.notify();
         let c = Candle::from_bar(self.next_index, bar);
