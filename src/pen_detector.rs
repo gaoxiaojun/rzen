@@ -421,7 +421,9 @@ mod tests {
         let mut fractals: Vec<Fractal> = Vec::new();
         let bars = load_eurusd_2021();
 
+        //let mut all_candles: Vec<Bar> = Vec::new();
         //let observer = |bar: &Bar| all_candles.push(bar.clone());
+
         let mut cq = FractalDetector::with_candles();
 
         for bar in &bars {
