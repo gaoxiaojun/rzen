@@ -42,7 +42,7 @@ use crate::{fractal::Fractal, pen_detector::PenEvent, ringbuffer::RingBuffer, se
 
 #[derive(Debug, Clone)]
 pub enum SegmentEvent {
-    New(usize, usize),
+    New(Fractal, Fractal),
     UpdateTo(usize),
 }
 
@@ -214,6 +214,53 @@ impl SegmentDetector {
         }
     }
 
+    fn process_first_segment(&mut self) -> Option<SegmentEvent> {
+        // 判断第一个线段
+        // 判断方式通过4个分型的滑动窗口来判断
+        let p1 = self.get(-4).unwrap();
+        let p2 = self.get(-3).unwrap();
+        let p3 = self.get(-2).unwrap();
+        let p4 = self.get(-1).unwrap();
+
+        self.direction = SegmentDetector::is_first_segment(p1, p2, p3, p4);
+
+        if self.direction.is_some() {
+            let len = self.fractals.len();
+            self.reset_state(len - 3, len - 1);
+            let start = self.get(-4).unwrap().clone();
+            let end = self.get(-1).unwrap().clone();
+            Some(SegmentEvent::New(start, end))
+        } else {
+            // 不需要弹出无用分型
+            // self.fractals.pop_front();
+            None
+        }
+    }
+
+    fn process_normal_segment(&mut self) -> Option<SegmentEvent> {
+        // 开始常规线段处理
+        debug_assert!(self.direction.is_some());
+        let direction = self.direction.unwrap();
+        let last_pen = self.get(-1).unwrap();
+        let length = self.fractals.len();
+        match direction {
+            SegmentDirection::Up => {
+                if last_pen.price() > self.fractals[self.current].price() {
+                    // 创新高，假设该点是线段终结点
+                    self.on_higher_high(length - 2);
+                }
+            }
+            SegmentDirection::Down => {
+                if last_pen.price() < self.fractals[self.current].price() {
+                    // 创新低，假设该点是线段终结点
+                    self.on_lower_low(length - 2);
+                }
+            }
+        }
+
+        None
+    }
+
     pub fn process(&mut self) -> Option<SegmentEvent> {
         // pens数组是先保存最新的笔，然后调用本方法，所以至少需要4个端点
         if self.fractals.len() < 5 {
@@ -221,51 +268,9 @@ impl SegmentDetector {
         }
 
         if self.direction.is_none() {
-            // 判断第一个线段
-            // 判断方式通过4个分型的滑动窗口来判断
-            let p1 = self.get(-4).unwrap();
-            let p2 = self.get(-3).unwrap();
-            let p3 = self.get(-2).unwrap();
-            let p4 = self.get(-1).unwrap();
-
-            self.direction = SegmentDetector::is_first_segment(p1, p2, p3, p4);
-
-            if self.direction.is_some() {
-                /*self.segments.push(p4_index);
-                self.segments.push(p1_index);
-                self.last = Some((p2_index, p3_index));
-                self.reset_state(p2_index, p4_index);*/
-                let len = self.fractals.len();
-                self.reset_state(len - 3, len - 1);
-                println!("Found First Segment");
-                return Some(SegmentEvent::New(len - 4, len - 1));
-            } else {
-                self.fractals.pop_front();
-                println!("Poped ..");
-                return None;
-            }
+            self.process_first_segment()
         } else {
-            // 开始常规线段处理
-            debug_assert!(self.direction.is_some());
-            let direction = self.direction.unwrap();
-            let last_pen = self.get(-1).unwrap();
-            let length = self.fractals.len();
-            match direction {
-                SegmentDirection::Up => {
-                    if last_pen.price() > self.fractals[self.current].price() {
-                        // 创新高，假设该点是线段终结点
-                        self.on_higher_high(length - 2);
-                    }
-                }
-                SegmentDirection::Down => {
-                    if last_pen.price() < self.fractals[self.current].price() {
-                        // 创新低，假设该点是线段终结点
-                        self.on_lower_low(length - 2);
-                    }
-                }
-            }
-
-            None
+            self.process_normal_segment()
         }
     }
 }
