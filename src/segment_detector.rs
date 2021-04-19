@@ -1,6 +1,11 @@
 use std::collections::VecDeque;
 
-use crate::{fractal::Fractal, pen_detector::PenEvent, ringbuffer::RingBuffer, sequence::Seq};
+use crate::{
+    fractal::Fractal,
+    pen_detector::PenEvent,
+    ringbuffer::RingBuffer,
+    sequence::{MergeDirection, Seq},
+};
 
 // 三笔重叠判断算法
 // 三笔4个端点必须：
@@ -67,10 +72,10 @@ pub struct SegmentDetector {
     prev: FractalVecIndex,
 
     // 对应线段终结第一种情况，保存3个分型判断即可
-    window1: RingBuffer<Fractal>,
+    window1: RingBuffer<Seq>,
 
     // 对应线段终结第二种情况，
-    window2: VecDeque<Fractal>,
+    window2: VecDeque<Seq>,
 }
 
 impl SegmentDetector {
@@ -162,10 +167,74 @@ impl SegmentDetector {
 
     fn state0(&self) {}
 
-    fn on_lower_low(&mut self, new_end_point: usize) {}
+    fn merge_seq_up(&self, start: usize, end: usize, dir: MergeDirection) -> Seq {
+        debug_assert!(end - start >= 2);
+        let mut fromIndex = start;
+        let from = self.get(fromIndex as isize).unwrap();
+        let to = self.get((fromIndex + 1) as isize).unwrap();
+        let mut seq = Seq::new(from.time(), from.price(), to.time(), to.price());
+        while fromIndex + 2 < end {
+            fromIndex += 2;
+            let new_from = self.get(fromIndex as isize).unwrap();
+            let new_to = self.get((fromIndex + 1) as isize).unwrap();
+            let new_seq = Seq::new(
+                new_from.time(),
+                new_from.price(),
+                new_to.time(),
+                new_to.price(),
+            );
+            let is_merged = seq.merge(&new_seq, dir);
+            if !is_merged {
+                break;
+            }
+        }
+        seq
+    }
+    // [start, end) end不包含在里面
+    fn merge_seq1(&self, start: usize, end: usize) -> Seq {
+        debug_assert!(end - start >= 2);
+        let direction = self.direction.unwrap();
+        let dir = match direction {
+            SegmentDirection::Down => MergeDirection::Down,
+            SegmentDirection::Up => MergeDirection::Up,
+        };
 
-    fn on_higher_high(&mut self, new_end_point: usize) {
-        self.reset_state(self.current, new_end_point)
+        let mut fromIndex = start;
+        let from = self.get(fromIndex as isize).unwrap();
+        let to = self.get((fromIndex + 1) as isize).unwrap();
+        let mut seq = Seq::new(from.time(), from.price(), to.time(), to.price());
+        while fromIndex + 2 < end {
+            fromIndex += 2;
+            let new_from = self.get(fromIndex as isize).unwrap();
+            let new_to = self.get((fromIndex + 1) as isize).unwrap();
+            let new_seq = Seq::new(
+                new_from.time(),
+                new_from.price(),
+                new_to.time(),
+                new_to.price(),
+            );
+            let is_merged = seq.merge(&new_seq, dir);
+            if !is_merged {
+                break;
+            }
+        }
+        seq
+    }
+
+    fn on_lower_low(&mut self) {
+        let new_end_point = self.fractals.len() - 1;
+        self.reset_state(self.current, new_end_point);
+        self.window1.clear();
+        let seq = self.merge_seq1(self.current, new_end_point);
+        self.window1.push(seq);
+    }
+
+    fn on_higher_high(&mut self) {
+        let new_end_point = self.fractals.len() - 1;
+        self.reset_state(self.current, new_end_point);
+        self.window1.clear();
+        let seq = self.merge_seq1(self.current, new_end_point);
+        self.window1.push(seq);
     }
 
     pub fn on_pen_event(&mut self, pen_event: PenEvent) -> Option<SegmentEvent> {
@@ -214,6 +283,8 @@ impl SegmentDetector {
         }
     }
 
+    fn on_new_pen(&mut self) {}
+
     fn process_first_segment(&mut self) -> Option<SegmentEvent> {
         // 判断第一个线段
         // 判断方式通过4个分型的滑动窗口来判断
@@ -243,17 +314,22 @@ impl SegmentDetector {
         let direction = self.direction.unwrap();
         let last_pen = self.get(-1).unwrap();
         let length = self.fractals.len();
+
         match direction {
             SegmentDirection::Up => {
                 if last_pen.price() > self.fractals[self.current].price() {
                     // 创新高，假设该点是线段终结点
-                    self.on_higher_high(length - 2);
+                    self.on_higher_high();
+                } else {
+                    self.on_new_pen();
                 }
             }
             SegmentDirection::Down => {
                 if last_pen.price() < self.fractals[self.current].price() {
                     // 创新低，假设该点是线段终结点
-                    self.on_lower_low(length - 2);
+                    self.on_lower_low();
+                } else {
+                    self.on_new_pen();
                 }
             }
         }
