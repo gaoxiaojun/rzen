@@ -92,25 +92,11 @@ impl SegmentDetector {
         }
     }
 
-    fn is_top_fractal(s1: &Seq, s2: &Seq, s3: &Seq) -> bool {
-        if s1.high() < s2.high() && s2.high() > s3.high() {
-            true
-        } else {
-            false
-        }
-    }
-
-    fn is_bottom_fractal(s1: &Seq, s2: &Seq, s3: &Seq) -> bool {
-        if s1.low() > s2.low() && s2.low() > s3.low() {
-            true
-        } else {
-            false
-        }
-    }
-
     fn reset_state(&mut self, p2: usize, p4: usize) {
         self.current = p4;
         self.prev = p2;
+        self.window1.clear();
+        self.window2.clear();
     }
 
     fn is_segment(
@@ -165,18 +151,15 @@ impl SegmentDetector {
         direction
     }
 
-    fn state0(&self) {}
-
-    fn merge_seq_up(&self, start: usize, end: usize, dir: MergeDirection) -> Seq {
-        debug_assert!(end - start >= 2);
-        let mut fromIndex = start;
-        let from = self.get(fromIndex as isize).unwrap();
-        let to = self.get((fromIndex + 1) as isize).unwrap();
+    fn merge_seq(&self, start: usize, end: usize, dir: MergeDirection) -> Seq {
+        let mut from_index = start;
+        let from = self.get(from_index as isize).unwrap();
+        let to = self.get((from_index + 1) as isize).unwrap();
         let mut seq = Seq::new(from.time(), from.price(), to.time(), to.price());
-        while fromIndex + 2 < end {
-            fromIndex += 2;
-            let new_from = self.get(fromIndex as isize).unwrap();
-            let new_to = self.get((fromIndex + 1) as isize).unwrap();
+        while from_index + 2 < end {
+            from_index += 2;
+            let new_from = self.get(from_index as isize).unwrap();
+            let new_to = self.get((from_index + 1) as isize).unwrap();
             let new_seq = Seq::new(
                 new_from.time(),
                 new_from.price(),
@@ -190,6 +173,8 @@ impl SegmentDetector {
         }
         seq
     }
+
+    // 当新的高(低)点出现后，把前高到现高之间的特征序列进行标准化
     // [start, end) end不包含在里面
     fn merge_seq1(&self, start: usize, end: usize) -> Seq {
         debug_assert!(end - start >= 2);
@@ -198,38 +183,10 @@ impl SegmentDetector {
             SegmentDirection::Down => MergeDirection::Down,
             SegmentDirection::Up => MergeDirection::Up,
         };
-
-        let mut fromIndex = start;
-        let from = self.get(fromIndex as isize).unwrap();
-        let to = self.get((fromIndex + 1) as isize).unwrap();
-        let mut seq = Seq::new(from.time(), from.price(), to.time(), to.price());
-        while fromIndex + 2 < end {
-            fromIndex += 2;
-            let new_from = self.get(fromIndex as isize).unwrap();
-            let new_to = self.get((fromIndex + 1) as isize).unwrap();
-            let new_seq = Seq::new(
-                new_from.time(),
-                new_from.price(),
-                new_to.time(),
-                new_to.price(),
-            );
-            let is_merged = seq.merge(&new_seq, dir);
-            if !is_merged {
-                break;
-            }
-        }
-        seq
+        self.merge_seq(start, end, dir)
     }
 
-    fn on_lower_low(&mut self) {
-        let new_end_point = self.fractals.len() - 1;
-        self.reset_state(self.current, new_end_point);
-        self.window1.clear();
-        let seq = self.merge_seq1(self.current, new_end_point);
-        self.window1.push(seq);
-    }
-
-    fn on_higher_high(&mut self) {
+    fn on_new_higher_or_new_lower(&mut self) {
         let new_end_point = self.fractals.len() - 1;
         self.reset_state(self.current, new_end_point);
         self.window1.clear();
@@ -270,20 +227,10 @@ impl SegmentDetector {
         }
     }
 
-    fn get_index(&self, index: isize) -> usize {
-        debug_assert!(
-            (index > 0 && index < self.fractals.len() as isize)
-                || (index < 0
-                    && ((self.fractals.len() as isize + index) as usize) < self.fractals.len())
-        );
-        if index >= 0 {
-            index as usize
-        } else {
-            (self.fractals.len() as isize + index) as usize
-        }
+    fn on_new_pen(&mut self) {
+        debug_assert!(self.window1.len() == 1);
+        let length = self.fractals.len();
     }
-
-    fn on_new_pen(&mut self) {}
 
     fn process_first_segment(&mut self) -> Option<SegmentEvent> {
         // 判断第一个线段
@@ -302,8 +249,7 @@ impl SegmentDetector {
             let end = self.get(-1).unwrap().clone();
             Some(SegmentEvent::New(start, end))
         } else {
-            // 不需要弹出无用分型
-            // self.fractals.pop_front();
+            self.fractals.pop_front();
             None
         }
     }
@@ -319,7 +265,7 @@ impl SegmentDetector {
             SegmentDirection::Up => {
                 if last_pen.price() > self.fractals[self.current].price() {
                     // 创新高，假设该点是线段终结点
-                    self.on_higher_high();
+                    self.on_new_higher_or_new_lower();
                 } else {
                     self.on_new_pen();
                 }
@@ -327,7 +273,7 @@ impl SegmentDetector {
             SegmentDirection::Down => {
                 if last_pen.price() < self.fractals[self.current].price() {
                     // 创新低，假设该点是线段终结点
-                    self.on_lower_low();
+                    self.on_new_higher_or_new_lower();
                 } else {
                     self.on_new_pen();
                 }

@@ -27,6 +27,14 @@ impl Seq {
         }
     }
 
+    pub fn start(&self) -> (Time, f64) {
+        (self.from_time, self.from_price)
+    }
+
+    pub fn end(&self) -> (Time, f64) {
+        (self.to_time, self.to_price)
+    }
+
     pub fn high(&self) -> f64 {
         if self.from_price > self.to_price {
             self.from_price
@@ -122,5 +130,21 @@ impl Seq {
         }
 
         true
+    }
+
+    pub fn is_top_fractal(s1: &Seq, s2: &Seq, s3: &Seq) -> bool {
+        if s1.high() < s2.high() && s2.high() > s3.high() {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_bottom_fractal(s1: &Seq, s2: &Seq, s3: &Seq) -> bool {
+        if s1.low() > s2.low() && s2.low() > s3.low() {
+            true
+        } else {
+            false
+        }
     }
 }
