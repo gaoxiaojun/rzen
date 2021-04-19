@@ -158,6 +158,12 @@ impl SegmentDetector {
         debug_assert!(self.window1.len() == 1);
         debug_assert!(self.fractals.len() > self.current);
         let length = self.fractals.len();
+        // 具体过程如下：
+        // 与线段当前方向相反的笔合并处理后放入window1
+        // 与线段当前方向相同的笔合并处理后放入window2
+        // 当window1的数量达到3，看是否是case1，如果是case1，形成顶分型，线段结束
+        // 如果不是，。。。。
+        // 当window2的数量达到3，如果是底分型，线段1结束，
     }
 
     fn find_first_segment(&mut self) -> Option<SegmentEvent> {
