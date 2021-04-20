@@ -287,6 +287,18 @@ impl SegmentDetector {
         }
     }
 
+    fn check_window2_fractal(&self) -> bool {
+        debug_assert!(self.window2.len() >= 3);
+        let s1 = self.window2.get(-3).unwrap();
+        let s2 = self.window2.get(-2).unwrap();
+        let s3 = self.window2.get(-1).unwrap();
+        let dir = self.direction.unwrap();
+        match dir {
+            SegmentDirection::Up => Seq::is_bottom_fractal(s1, s2, s3),
+            SegmentDirection::Down => Seq::is_top_fractal(s1, s2, s3),
+        }
+    }
+
     fn check_window1_has_gap(&self) -> bool {
         debug_assert!(self.window1.len() >= 2);
         let s1 = self.window1.get(0).unwrap();
@@ -309,31 +321,8 @@ impl SegmentDetector {
         }
     }
 
-    fn check_termination_case_1(&self) -> bool {
-        debug_assert!(self.check_window1_fractal());
-        let s1 = self.window1.get(-3).unwrap();
-        let s2 = self.window1.get(-2).unwrap();
-        let dir = self.direction.unwrap();
-        match dir {
-            SegmentDirection::Up => s1.high() >= s2.low(),
-            SegmentDirection::Down => s1.low() <= s2.high(),
-        }
-    }
-
-    fn check_window2_fractal(&self) -> bool {
-        debug_assert!(self.window2.len() >= 3);
-        let s1 = self.window2.get(-3).unwrap();
-        let s2 = self.window2.get(-2).unwrap();
-        let s3 = self.window2.get(-1).unwrap();
-        let dir = self.direction.unwrap();
-        match dir {
-            SegmentDirection::Up => Seq::is_bottom_fractal(s1, s2, s3),
-            SegmentDirection::Down => Seq::is_top_fractal(s1, s2, s3),
-        }
-    }
-
     fn check_termination(&self) -> Option<TerminationReson> {
-        let is_case1 = self.check_window1_fractal() && self.check_termination_case_1();
+        let is_case1 = self.check_window1_fractal() && !self.check_window1_has_gap();
         if is_case1 {
             return Some(TerminationReson::CASE1);
         }
