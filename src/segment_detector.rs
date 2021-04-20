@@ -135,7 +135,6 @@ impl SegmentDetector {
         match reason {
             None => None,
             CASE1 => {
-                // emit (start_point, current)
                 let event = self.emit_new_event(self.start_point, self.current);
                 self.start_point = self.current;
                 self.reset_state(self.current + 1, self.fractals.len() - 1);
@@ -348,7 +347,7 @@ impl SegmentDetector {
 
     fn on_new_pen(&mut self) -> Option<SegmentEvent> {
         // 每当新的一笔确认，在假设点前后，填充情况一及情况二的序列(window1, window2)
-        debug_assert!(self.window1.len() == 1);
+        //debug_assert!(self.window1.len() == 1);
         debug_assert!(self.fractals.len() > self.current);
         debug_assert!(self.direction.is_some());
 
@@ -367,7 +366,7 @@ impl SegmentDetector {
             segment_dir == SegmentDirection::Down && last.price() < prev.price();
         let is_same_direction = is_same_direction_up || is_same_direction_down;
         if is_same_direction {
-            self.add_seg_on_window2(SegmentDetector::get_not_merge_direction(segment_dir));
+            self.add_seg_on_window2(SegmentDetector::get_flip_merge_direction(segment_dir));
         } else {
             self.add_seq_on_window1(SegmentDetector::get_merge_direction(segment_dir));
         }
@@ -476,8 +475,9 @@ impl SegmentDetector {
         }
     }
 
-    fn pop_segment(&mut self) {
-        self.fractals.drain(0..self.current - 1);
+    fn pop_segment(&mut self, end: usize) {
+        debug_assert!(end < self.fractals.len());
+        self.fractals.drain(0..end - 1);
     }
 
     fn merge_direction(&self) -> MergeDirection {
@@ -493,7 +493,7 @@ impl SegmentDetector {
         }
     }
 
-    fn get_not_merge_direction(direction: SegmentDirection) -> MergeDirection {
+    fn get_flip_merge_direction(direction: SegmentDirection) -> MergeDirection {
         match direction {
             SegmentDirection::Down => MergeDirection::Up,
             SegmentDirection::Up => MergeDirection::Down,
