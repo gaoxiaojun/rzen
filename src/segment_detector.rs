@@ -74,8 +74,6 @@ pub struct SegmentDetector {
     fractals: VecDeque<Fractal>,
     direction: Option<SegmentDirection>,
 
-    // 线段的起点
-    start_point: FractalVecIndex,
     // 假设的线段终结点
     current: FractalVecIndex,
     // 对应假设终结点的前高(低)点，用于特征分型第一元素的计算
@@ -93,7 +91,6 @@ impl SegmentDetector {
         Self {
             fractals: VecDeque::new(),
             direction: None,
-            start_point: 0,
             current: 0,
             prev: 0,
             window1: RingBuffer::new(3),
@@ -101,13 +98,15 @@ impl SegmentDetector {
         }
     }
 
-    fn reset_state(&mut self, p2: usize, p4: usize) {
-        debug_assert!(p4 - p2 >= 2);
-        self.current = p4;
-        self.prev = p2;
+    fn reset_state(&mut self, start_point: usize, prev: usize, current: usize) {
+        debug_assert!(current - prev >= 2);
+        debug_assert!(start_point < self.fractals.len());
+        self.fractals.drain(..start_point);
+        self.current = current;
+        self.prev = prev;
         self.window1.clear();
         self.window2.clear();
-        let seq = self.merge_seq(p2, p4, self.merge_direction());
+        let seq = self.merge_seq(prev, current, self.merge_direction());
         self.window1.push(seq);
     }
 
@@ -118,26 +117,29 @@ impl SegmentDetector {
         }
     }
 
-    fn emit_new_event(&self, start: usize, end: usize) -> SegmentEvent {
-        let f1 = self.fractals.get(start).unwrap();
-        let f2 = self.fractals.get(end).unwrap();
-        SegmentEvent::New(f1.clone(), f2.clone())
+    fn emit_new_event(&self, end: usize) -> SegmentEvent {
+        let start_fractal = self.fractals.get(0).unwrap();
+        let end_fractal = self.fractals.get(end).unwrap();
+        SegmentEvent::New(start_fractal.clone(), end_fractal.clone())
     }
 
-    fn emit_new2_event(&self, start: usize, end: usize, next_end: usize) -> SegmentEvent {
-        let f1 = self.fractals.get(start).unwrap();
-        let f2 = self.fractals.get(end).unwrap();
-        let f3 = self.fractals.get(next_end).unwrap();
-        SegmentEvent::New2(f1.clone(), f2.clone(), f3.clone())
+    fn emit_new2_event(&self, end: usize, next_end: usize) -> SegmentEvent {
+        let start_fractal = self.fractals.get(0).unwrap();
+        let end_fractal = self.fractals.get(end).unwrap();
+        let new_end_fractal = self.fractals.get(next_end).unwrap();
+        SegmentEvent::New2(
+            start_fractal.clone(),
+            end_fractal.clone(),
+            new_end_fractal.clone(),
+        )
     }
 
     fn flip(&mut self, reason: Option<TerminationReson>) -> Option<SegmentEvent> {
         match reason {
             None => None,
             Some(TerminationReson::CASE1) => {
-                let event = self.emit_new_event(self.start_point, self.current);
-                self.start_point = self.current;
-                self.reset_state(self.current + 1, self.fractals.len() - 1);
+                let event = self.emit_new_event(self.current);
+                self.reset_state(self.current, self.current + 1, self.fractals.len() - 1);
                 self.flip_direction();
                 Some(event)
             }
@@ -147,19 +149,17 @@ impl SegmentDetector {
                 let current2 = c2.from_index();
                 let new_prev = c2.to_index();
                 let new_current = c3.to_index();
-                let event = self.emit_new2_event(self.start_point, self.current, current2);
-                self.start_point = c2.from_index();
-                self.reset_state(new_prev, new_current);
+                let event = self.emit_new2_event(self.current, current2);
+                self.reset_state(current2, new_prev, new_current);
                 Some(event)
             }
             Some(TerminationReson::CASE22) => {
-                let event = self.emit_new_event(self.start_point, self.current);
+                let event = self.emit_new_event(self.current);
                 let c1 = self.window2.get(-3).unwrap();
                 let c2 = self.window2.get(-2).unwrap();
                 let new_prev = c1.from_index();
                 let new_current = c2.from_index();
-                self.start_point = self.current;
-                self.reset_state(new_prev, new_current);
+                self.reset_state(self.current, new_prev, new_current);
                 self.flip_direction();
                 Some(event)
             }
@@ -382,16 +382,14 @@ impl SegmentDetector {
 
         self.direction = SegmentDetector::is_first_segment(p1, p2, p3, p4);
 
-        self.start_point = self.fractals.len() - 4;
-
         if self.direction.is_some() {
             let len = self.fractals.len();
-            self.reset_state(len - 3, len - 1);
+            self.reset_state(self.fractals.len() - 4, len - 3, len - 1);
             let start = self.get(-4).unwrap().clone();
             let end = self.get(-1).unwrap().clone();
             Some(SegmentEvent::New(start, end))
         } else {
-            self.fractals.pop_front();
+            //self.fractals.pop_front();
             None
         }
     }
@@ -413,7 +411,7 @@ impl SegmentDetector {
         if new_higher_or_lower {
             // 创新高或者新低，假设该点是线段终结点
             let new_assume_end_point = self.fractals.len() - 1;
-            self.reset_state(self.current, new_assume_end_point);
+            self.reset_state(0, self.current, new_assume_end_point);
             None
         } else {
             self.on_new_pen()
@@ -466,11 +464,6 @@ impl SegmentDetector {
             self.fractals
                 .get((self.fractals.len() as isize + index) as usize)
         }
-    }
-
-    fn pop_segment(&mut self, end: usize) {
-        debug_assert!(end < self.fractals.len());
-        self.fractals.drain(0..end - 1);
     }
 
     fn merge_direction(&self) -> MergeDirection {
