@@ -5,8 +5,10 @@ use crate::time::Time;
 
 #[derive(Debug)]
 pub struct Seq {
+    from_index: usize,
     from_time: Time,
     from_price: f64,
+    to_index: usize,
     to_time: Time,
     to_price: f64,
 }
@@ -18,13 +20,30 @@ pub enum MergeDirection {
 }
 
 impl Seq {
-    pub fn new(from_time: Time, from_price: f64, to_time: Time, to_price: f64) -> Self {
+    pub fn new(
+        from_index: usize,
+        from_time: Time,
+        from_price: f64,
+        to_index: usize,
+        to_time: Time,
+        to_price: f64,
+    ) -> Self {
         Self {
+            from_index,
             from_time,
             from_price,
+            to_index,
             to_time,
             to_price,
         }
+    }
+
+    pub fn from_index(&self) -> usize {
+        self.from_index
+    }
+
+    pub fn to_index(&self) -> usize {
+        self.to_index
     }
 
     pub fn start(&self) -> (Time, f64) {
