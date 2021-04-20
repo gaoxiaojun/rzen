@@ -145,17 +145,21 @@ impl SegmentDetector {
                 let c2 = self.window2.get(-2).unwrap();
                 let c3 = self.window2.get(-1).unwrap();
                 let current2 = c2.from_index();
+                let new_prev = c2.to_index();
+                let new_current = c3.to_index();
                 let event = self.emit_new2_event(self.start_point, self.current, current2);
                 self.start_point = c2.from_index();
-                self.reset_state(c2.to_index(), c3.to_index());
+                self.reset_state(new_prev, new_current);
                 Some(event)
             }
             Some(TerminationReson::CASE22) => {
                 let event = self.emit_new_event(self.start_point, self.current);
                 let c1 = self.window2.get(-3).unwrap();
                 let c2 = self.window2.get(-2).unwrap();
+                let new_prev = c1.from_index();
+                let new_current = c2.from_index();
                 self.start_point = self.current;
-                self.reset_state(c1.from_index(), c2.from_index());
+                self.reset_state(new_prev, new_current);
                 self.flip_direction();
                 Some(event)
             }
