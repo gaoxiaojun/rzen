@@ -134,14 +134,14 @@ impl SegmentDetector {
     fn flip(&mut self, reason: Option<TerminationReson>) -> Option<SegmentEvent> {
         match reason {
             None => None,
-            CASE1 => {
+            Some(TerminationReson::CASE1) => {
                 let event = self.emit_new_event(self.start_point, self.current);
                 self.start_point = self.current;
                 self.reset_state(self.current + 1, self.fractals.len() - 1);
                 self.flip_direction();
                 Some(event)
             }
-            CASE21 => {
+            Some(TerminationReson::CASE21) => {
                 let c2 = self.window2.get(-2).unwrap();
                 let c3 = self.window2.get(-1).unwrap();
                 let current2 = c2.from_index();
@@ -150,7 +150,7 @@ impl SegmentDetector {
                 self.reset_state(c2.to_index(), c3.to_index());
                 Some(event)
             }
-            CASE22 => {
+            Some(TerminationReson::CASE22) => {
                 let event = self.emit_new_event(self.start_point, self.current);
                 let c1 = self.window2.get(-3).unwrap();
                 let c2 = self.window2.get(-2).unwrap();
