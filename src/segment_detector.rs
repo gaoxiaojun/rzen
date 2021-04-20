@@ -364,6 +364,9 @@ impl SegmentDetector {
             self.add_seq_on_window1(SegmentDetector::get_merge_direction(segment_dir));
         }
 
+        // TODO:这里存在一个错误，就是何时需要判断是否终结
+        // 当window1/window2的第4个分型要压入的时候
+        // 参考fractal_dector的实现
         let reason = self.check_termination();
         self.flip(reason)
     }
