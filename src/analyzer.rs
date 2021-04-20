@@ -1,8 +1,8 @@
+use crate::bar::Bar;
 use crate::fractal::Fractal;
 use crate::fractal_detector::FractalDetector;
 use crate::pen_detector::PenDetector;
 use crate::segment_detector::SegmentDetector;
-use crate::{bar::Bar, pen_detector::PenEvent};
 
 #[derive(Debug)]
 pub struct Analyzer {
