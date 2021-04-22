@@ -8,6 +8,7 @@ pub mod pen_detector;
 pub mod pivot;
 pub mod plot;
 mod ringbuffer;
+mod sd2;
 pub mod segment_detector;
 pub mod sequence;
 pub(crate) mod test_util;
