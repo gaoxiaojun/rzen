@@ -2,7 +2,7 @@ use crate::bar::Bar;
 use crate::fractal::Fractal;
 use crate::fractal_detector::FractalDetector;
 use crate::pen_detector::PenDetector;
-use crate::segment_detector::SegmentDetector;
+use crate::sd2::SegmentDetector;
 
 #[derive(Debug)]
 pub struct Analyzer {
