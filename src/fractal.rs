@@ -105,12 +105,27 @@ impl Fractal {
         }
     }
 
-    pub fn is_contain(&self, other: &Fractal) -> bool {
+    // 分型包含规则2，3根Candle的最高最低作为分型区间
+    // rule2的包含规则是上述分型区间包含,要求后一个分型不能在前一个分型的区间内
+    pub fn is_contain_rule2(&self, other: &Fractal) -> bool {
         if self.highest() >= other.highest() && self.lowest() <= other.lowest() {
             true
         } else {
             false
         }
+    }
+
+    // 分型包含规则1，第二根Candle的最高最低作为分型区间
+    pub fn is_contain_rule1(&self, other: &Fractal) -> bool {
+        if self.k2.high() >= other.k2.high() && self.k2.low() <= other.k2.low() {
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn is_contain(&self, other: &Fractal) -> bool {
+        self.is_contain_rule1(other)
     }
 }
 

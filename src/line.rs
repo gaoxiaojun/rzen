@@ -14,8 +14,8 @@ impl Point {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Line {
-    start: Point,
-    end: Point,
+    from: Point,
+    to: Point,
     extreme_point: Option<Point>,
     merged: bool,
 }
@@ -29,34 +29,34 @@ pub enum MergeDirection {
 impl Line {
     pub fn new(from_time: Time, from_price: f64, to_time: Time, to_price: f64) -> Self {
         Self {
-            start: Point::new(from_time, from_price),
-            end: Point::new(to_time, to_price),
+            from: Point::new(from_time, from_price),
+            to: Point::new(to_time, to_price),
             extreme_point: None,
             merged: false,
         }
     }
     pub fn new_from_pen(from: &Fractal, to: &Fractal) -> Self {
         Self {
-            start: Point::new(from.time(), from.price()),
-            end: Point::new(to.time(), to.price()),
+            from: Point::new(from.time(), from.price()),
+            to: Point::new(to.time(), to.price()),
             extreme_point: None,
             merged: false,
         }
     }
 
     pub fn high(&self) -> f64 {
-        if self.start.price > self.end.price {
-            self.start.price
+        if self.from.price > self.to.price {
+            self.from.price
         } else {
-            self.end.price
+            self.to.price
         }
     }
 
     pub fn low(&self) -> f64 {
-        if self.start.price < self.end.price {
-            self.start.price
+        if self.from.price < self.to.price {
+            self.from.price
         } else {
-            self.end.price
+            self.to.price
         }
     }
 
@@ -93,6 +93,67 @@ impl Line {
         true
     }
 
-    pub fn merge_up(&mut self, rhs: &Line) {}
-    pub fn merge_down(&mut self, rhs: &Line) {}
+    pub fn merge_up(&mut self, rhs: &Line) {
+        let lhs_height = self.to.price - self.from.price;
+        let rhs_height = self.to.price - self.from.price;
+        let is_same =
+            (lhs_height < 0.0 && rhs_height < 0.0) || (lhs_height > 0.0 && rhs_height > 0.0);
+
+        let is_large = (lhs_height.abs() - rhs_height.abs()) > 0.0;
+
+        match (is_large, is_same) {
+            (false, true) => {
+                self.from.time = self.to.time;
+                self.from.price = self.to.price;
+                self.to.time = rhs.from.time;
+                self.to.price = rhs.from.price;
+            }
+            (false, false) => {
+                self.to.time = rhs.from.time;
+                self.to.price = rhs.from.price;
+            }
+            (true, true) => {
+                self.to.time = rhs.to.time;
+                self.to.price = rhs.to.price;
+            }
+            (true, false) => {
+                self.from.time = self.to.time;
+                self.from.price = self.to.price;
+                self.to.time = rhs.to.time;
+                self.to.price = rhs.to.price;
+            }
+        }
+    }
+
+    pub fn merge_down(&mut self, rhs: &Line) {
+        let lhs_height = self.to.price - self.from.price;
+        let rhs_height = self.to.price - self.from.price;
+        let is_same =
+            (lhs_height < 0.0 && rhs_height < 0.0) || (lhs_height > 0.0 && rhs_height > 0.0);
+
+        let is_large = (lhs_height.abs() - rhs_height.abs()) > 0.0;
+
+        match (is_large, is_same) {
+            (false, true) => {
+                self.from.time = self.to.time;
+                self.from.price = self.to.price;
+                self.to.time = rhs.from.time;
+                self.to.price = rhs.from.price;
+            }
+            (false, false) => {
+                self.to.time = rhs.from.time;
+                self.to.price = rhs.from.price;
+            }
+            (true, true) => {
+                self.to.time = rhs.to.time;
+                self.to.price = rhs.to.price;
+            }
+            (true, false) => {
+                self.from.time = self.to.time;
+                self.from.price = self.to.price;
+                self.to.time = rhs.to.time;
+                self.to.price = rhs.to.price;
+            }
+        }
+    }
 }

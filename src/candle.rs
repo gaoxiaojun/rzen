@@ -31,6 +31,14 @@ impl Candle {
         }
     }
 
+    pub fn high(&self) -> f64 {
+        self.bar.high
+    }
+
+    pub fn low(&self) -> f64 {
+        self.bar.low
+    }
+
     // 检测包含方向
     pub fn check_direction(k1: &Candle, k2: &Candle) -> Direction {
         debug_assert!(k1.index != k2.index);
@@ -173,7 +181,7 @@ mod tests {
         index += 1;
 
         let dir = Candle::check_direction(&c1, &c2);
-        let mut current = &mut c2;
+        let current = &mut c2;
         for bar in &bars {
             let is_merged = Candle::merge(dir, current, bar);
             if !is_merged {
